@@ -1,0 +1,53 @@
+#lang scheme
+
+(define atom?
+  (lambda (x)
+    (if (null? x)
+        #t
+        (not (list? x)))))
+
+(define filter (x l)
+  (if (null? (cdr l))
+      '()
+      (if (= x (car l))
+          (cons (car l) (filter x (cdr l)))
+          (filter x (cdr l)))))
+
+;(define count (x l)
+;  (count (filter x l)))
+
+;(define countall (x l)
+;  (count (filter x (flatten l))))
+
+(define countall1
+  (lambda (x l)
+    (if (null? l)
+        0
+        (if (atom? l)
+            (if (equal? x l)
+                1
+                0)
+            (+ (count x (car l)) (count x (cdr l)))))))
+
+
+(define countall2
+  (lambda (x l)
+    (if (list? l)
+        (if (null? l)
+            0
+            (+ (count x (car l)) (count x (cdr l))))
+        (if (equal? x l)
+            1
+            0))))
+
+(define count
+  (lambda (x l)
+    (display 'xxxxxxxxxxxxxxxxxxxxx) (newline)
+    (display x) (newline)
+    (display l) (newline)
+    
+    (if (null? l)
+        0
+        (if (equal? x l)
+            1
+            (+ (count x (car l)) (count x (cdr l)))))))
