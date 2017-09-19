@@ -69,17 +69,50 @@
 (define (sublist l1 l2)
   (= (length l1) (sublist-aux l1 l2)))
 
-(define (contig-sublist-aux l1 l2 target count)
-  (if (null? l1)
-      0
-      (if (= target count)
-          count
-          (if (contains? (car l1) l2)
-              (contig-sublist-aux (cdr l1) l2 target (+ count 1))
-              (contig-sublist-aux (cdr l1) l2 target 0)))))
+;(define (contig-sublist-aux l1 l2 target count)
+;  (if (null? l1)
+;      0
+;      (if (= target count)
+;          count
+;          (if (contains? (car l1) l2)
+;              (contig-sublist-aux (cdr l1) l2 target (+ count 1))
+;              (contig-sublist-aux (cdr l1) l2 target 0)))))
 
-(define (contig-sublist l1 l2)
-  (= (length l1) (contig-sublist-aux l1 l2 (length l1) 0)))
+;(define (contig-sublist l1 l2)
+;  (= (length l1) (contig-sublist-aux l1 l2 (length l1) 0)))
+
+(define remove2
+  (lambda (x s)
+    (if (null? s)
+        '()
+        (if (atom? s)
+            (if (not (equal? x s))
+                (list s)
+                '())
+            (append (remove x (car s)) (remove x (cdr s)))))))
+
+(define remove3
+  (lambda (x s)
+    (if (null? s)
+        '()
+        (if (atom? s)
+            (if (not (equal? x s))
+                s
+                '())
+            (append (list (remove x (car s))) (remove x (cdr s)))))))
+
+(define remove
+  (lambda (x s)
+    (if (null? s)
+        '()
+        (if (atom? s)
+            s
+            (if (equal? x (car s))
+                (cons (remove x (car (cdr s))) (remove x (cdr (cdr s))))
+                (cons (car s) (remove x (cdr s))))))))
+        
+
+
 
 (count 'a '(1 b a a (c a) a b))
 (countall 'a '(1 b a a (c a (b a)) a b))
@@ -87,5 +120,7 @@
 (twist '(1 2 3 4 5 ))
 (flatten '((a b) ((c d) e)))
 (sublist '(a b c) '(x a y b z c))
-(contig-sublist '(a b c) '(x a y b z c))
-(contig-sublist '(a y) '(x a y b z c))
+;(contig-sublist '(a b c) '(x a y b z c))
+;(contig-sublist '(a y) '(x a y b z c))
+(remove 'a '(a b c (a d) e a f))
+(remove 'a '(a))
