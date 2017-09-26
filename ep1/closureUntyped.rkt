@@ -27,6 +27,7 @@
   [uminusS (e  ExprS?)]
   [multS   (l  ExprS?) (r  ExprS?)]
   [ifS     (c  ExprS?) (s  ExprS?) (n  ExprS?)]
+  [letS    (s symbol?) (v number?) (body ExprS?)]
   )
 
 
@@ -42,6 +43,7 @@
     [bminusS (l r) (plusC (desugar l) (multC (numC -1) (desugar r)))]
     [uminusS (e)   (multC (numC -1) (desugar e))]
     [ifS     (c s n) (ifC (desugar c) (desugar s) (desugar n))]
+    [letS    (s v b) (numC v)]
     ))
 
 
@@ -134,3 +136,12 @@
               mt-env)
       (numV 15))
 (interpS '(+ 10 (call (func x (+ x x)) 16)))
+
+; Meus testes
+(interpS '(~ 3))
+(interpS '(lambda x 2))
+(interpS '(call (func x (+ x x)) 16))
+(interpS '(call (lambda x 2) 3))
+;(interpS '(let x 2 (+ x x)))
+
+;(let ((x 2)) (+ x x))
