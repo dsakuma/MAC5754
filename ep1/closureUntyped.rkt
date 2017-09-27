@@ -29,8 +29,7 @@
   [multS   (l  ExprS?) (r  ExprS?)]
   [ifS     (c  ExprS?) (s  ExprS?) (n  ExprS?)]
   [letS    (s symbol?) (v ExprS?) (body ExprS?)]
-  [let2S    (s symbol?) (v ExprS?) (body ExprS?)]
-  [let*S   (s1 symbol?) (v1 number?) (s2 symbol?) (v2 symbol?) (body ExprS?)]
+  [let*S   (s1 symbol?) (v1 ExprS?) (s2 symbol?) (v2 ExprS?) (body ExprS?)]
   [quoteS  (s symbol?)]
   )
 
@@ -47,8 +46,8 @@
     [bminusS (l r) (plusC (desugar l) (multC (numC -1) (desugar r)))]
     [uminusS (e)   (multC (numC -1) (desugar e))]
     [ifS     (c s n) (ifC (desugar c) (desugar s) (desugar n))]
-    [letS    (s v b) (appC (lamC s (desugar b)) (numC v))]
-    [let*S   (s1 v1 s2 v2 b) (numC 999999)]
+    [letS    (s v b) (appC (lamC s (desugar b)) (desugar v))]
+    [let*S   (s1 v1 s2 v2 b) (appC (lamC s1 (appC (lamC s2 (desugar b)) (desugar v2))) (desugar v1))]
     [quoteS  (s) (quoteC s)]
     ))
 
@@ -132,8 +131,8 @@
          [(lambda) (lamS (second sl) (parse (third sl)))]
          [(call) (appS (parse (second sl)) (parse (third sl)))]
          [(if) (ifS (parse (second sl)) (parse (third sl)) (parse (fourth sl)))]
-         [(let) (letS (first (second sl)) (parse (second (second sl))) (parse (third sl)))]
-         [(let*) (let*S (second sl) (third sl) (fourth sl) (fifth sl) (parse (sixth sl)))]
+         [(let) (letS (first (first (second sl))) (parse (second (first (second sl)))) (parse (third sl)))]
+         [(let*) (let*S (first (first (second sl))) (parse (second (first (second sl)))) (first (second (second sl))) (parse (second (second (second sl)))) (parse (third sl)))]
          [(quote) (quoteS (second sl))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
@@ -149,12 +148,18 @@
 (interpS '(+ 10 (call (func x (+ x x)) 16)))
 
 ; Meus testes
+
 ;(interpS '(~ 3))
 ;(interpS '(lambda x (+ x 2)))
 ;(interpS '(call (lambda x (+ x x)) 16))
 ;(interpS '(call (lambda x 2) 3))
 ;(interpS '(let x 3 (+ x x)))
-(interpS '(let (x 2) (+ x x)))
-(interpS '(let (x (+ 1 1)) (+ x x)))
-;(interpS '(let* x 1 y x (+ x y)))
+
+(test (interpS '(let [(x 2)] (+ x x))) (numV 4))
+(test (interpS '(let [(x (+ 1 2))] (+ x x))) (numV 6))
+
+(test (interpS '(let* [(a 1) (b 1)] (+ a b))) (numV 2))
+(test (interpS '(let* [(a 1) (b (+ a 1))] (+ a b))) (numV 3))
+
+
 ;(interpS '(quote alan))
