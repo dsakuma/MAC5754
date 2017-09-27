@@ -13,6 +13,7 @@
   [lamC  (arg  symbol?) (body  ExprC?)] ; nomes não são mais necessários
   [appC  (fun  ExprC?) (arg  ExprC?)]
   [ifC   (condição  ExprC?) (sim  ExprC?) (não  ExprC?)]
+  [quoteC (s symbol?)]
   )
 
 
@@ -27,7 +28,10 @@
   [uminusS (e  ExprS?)]
   [multS   (l  ExprS?) (r  ExprS?)]
   [ifS     (c  ExprS?) (s  ExprS?) (n  ExprS?)]
-  [letS    (s symbol?) (v number?) (body ExprS?)]
+  [letS    (s symbol?) (v ExprS?) (body ExprS?)]
+  [let2S    (s symbol?) (v ExprS?) (body ExprS?)]
+  [let*S   (s1 symbol?) (v1 number?) (s2 symbol?) (v2 symbol?) (body ExprS?)]
+  [quoteS  (s symbol?)]
   )
 
 
@@ -43,7 +47,9 @@
     [bminusS (l r) (plusC (desugar l) (multC (numC -1) (desugar r)))]
     [uminusS (e)   (multC (numC -1) (desugar e))]
     [ifS     (c s n) (ifC (desugar c) (desugar s) (desugar n))]
-    [letS    (s v b) (numC v)]
+    [letS    (s v b) (appC (lamC s (desugar b)) (numC v))]
+    [let*S   (s1 v1 s2 v2 b) (numC 999999)]
+    [quoteS  (s) (quoteC s)]
     ))
 
 
@@ -61,7 +67,8 @@
 (define extend-env cons) ; Por sorte, cons faz exatamente o que queremos para estender o env
 (define-type Value
   [numV  (n  number?)]
-  [closV (arg  symbol?) (body  ExprC?) (env  list?)])
+  [closV (arg  symbol?) (body  ExprC?) (env  list?)]
+  [simbolV (s symbol?)])
 
 
 ; Novos operadores
@@ -96,6 +103,7 @@
     [plusC (l r) (num+ (interp l env) (interp r env))]
     [multC (l r) (num* (interp l env) (interp r env))]
     [ifC (c s n) (if (zero? (numV-n (interp c env))) (interp n env) (interp s env))]
+    [quoteC (s) (simbolV s)]
     ))
 
 ; Lookup para procurar símbolos no Environment
@@ -124,6 +132,9 @@
          [(lambda) (lamS (second sl) (parse (third sl)))]
          [(call) (appS (parse (second sl)) (parse (third sl)))]
          [(if) (ifS (parse (second sl)) (parse (third sl)) (parse (fourth sl)))]
+         [(let) (letS (first (second sl)) (parse (second (second sl))) (parse (third sl)))]
+         [(let*) (let*S (second sl) (third sl) (fourth sl) (fifth sl) (parse (sixth sl)))]
+         [(quote) (quoteS (second sl))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -138,10 +149,12 @@
 (interpS '(+ 10 (call (func x (+ x x)) 16)))
 
 ; Meus testes
-(interpS '(~ 3))
-(interpS '(lambda x 2))
-(interpS '(call (func x (+ x x)) 16))
-(interpS '(call (lambda x 2) 3))
-;(interpS '(let x 2 (+ x x)))
-
-;(let ((x 2)) (+ x x))
+;(interpS '(~ 3))
+;(interpS '(lambda x (+ x 2)))
+;(interpS '(call (lambda x (+ x x)) 16))
+;(interpS '(call (lambda x 2) 3))
+;(interpS '(let x 3 (+ x x)))
+(interpS '(let (x 2) (+ x x)))
+(interpS '(let (x (+ 1 1)) (+ x x)))
+;(interpS '(let* x 1 y x (+ x y)))
+;(interpS '(quote alan))
