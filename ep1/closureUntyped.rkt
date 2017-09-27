@@ -167,4 +167,11 @@
 ;                                    0)))]
 ;            (sum 3)))
 
-;(interpS '(quote alan))
+(test (interpS '(quote alan)) (simbolV 'alan))
+
+(letrec [(sum (lambda (n)
+                                (if (equal? 0 n)
+                                    0
+                                    (+ n (sum (- n 1))))))
+                                    ]
+  (sum 3))
