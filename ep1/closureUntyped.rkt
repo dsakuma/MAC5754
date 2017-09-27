@@ -161,5 +161,10 @@
 (test (interpS '(let* [(a 1) (b 1)] (+ a b))) (numV 2))
 (test (interpS '(let* [(a 1) (b (+ a 1))] (+ a b))) (numV 3))
 
+;(interpS '(letrec [(sum (lambda (n)
+;                                (if n
+;                                    (+ n (sum (- n 1)))
+;                                    0)))]
+;            (sum 3)))
 
 ;(interpS '(quote alan))
