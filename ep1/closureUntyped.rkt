@@ -13,6 +13,7 @@
   [lamC  (arg  symbol?) (body  ExprC?)] ; nomes não são mais necessários
   [appC  (fun  ExprC?) (arg  ExprC?)]
   [ifC   (condição  ExprC?) (sim  ExprC?) (não  ExprC?)]
+  [letrecC (sym symbol?) (fun ExprC?) (arg ExprC?)]
   [quoteC (s symbol?)]
   )
 
@@ -30,6 +31,7 @@
   [ifS     (c  ExprS?) (s  ExprS?) (n  ExprS?)]
   [letS    (s symbol?) (v ExprS?) (body ExprS?)]
   [let*S   (s1 symbol?) (v1 ExprS?) (s2 symbol?) (v2 ExprS?) (body ExprS?)]
+  [letrecS (s symbol?) (v ExprS?) (body ExprS?)]
   [quoteS  (s symbol?)]
   )
 
@@ -48,6 +50,7 @@
     [ifS     (c s n) (ifC (desugar c) (desugar s) (desugar n))]
     [letS    (s v b) (appC (lamC s (desugar b)) (desugar v))]
     [let*S   (s1 v1 s2 v2 b) (appC (lamC s1 (appC (lamC s2 (desugar b)) (desugar v2))) (desugar v1))]
+    [letrecS (sym fun arg) (letrecC sym (desugar fun) (desugar arg))]
     [quoteS  (s) (quoteC s)]
     ))
 
@@ -102,6 +105,11 @@
     [plusC (l r) (num+ (interp l env) (interp r env))]
     [multC (l r) (num* (interp l env) (interp r env))]
     [ifC (c s n) (if (zero? (numV-n (interp c env))) (interp n env) (interp s env))]
+    [letrecC (sym fun arg)
+          (local ([define f-value '()]) ; f-value descreve melhor a ideia
+            (begin
+              (set!
+              )]
     [quoteC (s) (simbolV s)]
     ))
 
@@ -133,6 +141,7 @@
          [(if) (ifS (parse (second sl)) (parse (third sl)) (parse (fourth sl)))]
          [(let) (letS (first (first (second sl))) (parse (second (first (second sl)))) (parse (third sl)))]
          [(let*) (let*S (first (first (second sl))) (parse (second (first (second sl)))) (first (second (second sl))) (parse (second (second (second sl)))) (parse (third sl)))]
+         [(letrec) (letrecS (first (first (second sl))) (parse (second (first (second sl)))) (parse (third sl)))]
          [(quote) (quoteS (second sl))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
@@ -157,9 +166,17 @@
 
 (test (interpS '(let [(x 2)] (+ x x))) (numV 4))
 (test (interpS '(let [(x (+ 1 2))] (+ x x))) (numV 6))
-
+(test (interpS '(let [(fun (lambda x 2))] (call fun 3))) (numV 2))
+ 
 (test (interpS '(let* [(a 1) (b 1)] (+ a b))) (numV 2))
 (test (interpS '(let* [(a 1) (b (+ a 1))] (+ a b))) (numV 3))
+
+(test (interpS '(let ([x 3]) x)) (numV 3))
+(test (interpS '(let* ([x 1] [y 2]) (+ x y))) (numV 3))
+
+(test (interpS '(letrec ([f (lambda n n)]) (call f 3))) (numV 3))
+
+
 
 ;(interpS '(letrec [(sum (lambda (n)
 ;                                (if n
@@ -167,11 +184,11 @@
 ;                                    0)))]
 ;            (sum 3)))
 
-(test (interpS '(quote alan)) (simbolV 'alan))
+;(test (interpS '(quote alan)) (simbolV 'alan))
 
-(letrec [(sum (lambda (n)
-                                (if (equal? 0 n)
-                                    0
-                                    (+ n (sum (- n 1))))))
-                                    ]
-  (sum 3))
+;(letrec [(sum (lambda (n)
+;                                (if (equal? 0 n)
+;                                    0
+;                                    (+ n (sum (- n 1))))))
+;                                    ]
+;  (sum 3))
