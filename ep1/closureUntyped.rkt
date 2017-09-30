@@ -15,6 +15,7 @@
   [ifC   (condição  ExprC?) (sim  ExprC?) (não  ExprC?)]
   [letrecC (sym symbol?) (fun ExprC?) (body ExprC?)]
   [quoteC (s symbol?)]
+  [loadC  (s ExprC?)]
   )
 
 
@@ -33,6 +34,7 @@
   [let*S   (s1 symbol?) (v1 ExprS?) (s2 symbol?) (v2 ExprS?) (body ExprS?)]
   [letrecS (sym symbol?) (fun ExprS?) (body ExprS?)]
   [quoteS  (s symbol?)]
+  [loadS   (s ExprS?)]
   )
 
 
@@ -52,6 +54,7 @@
     [let*S   (s1 v1 s2 v2 b) (appC (lamC s1 (appC (lamC s2 (desugar b)) (desugar v2))) (desugar v1))]
     [letrecS (sym fun body) (letrecC sym (desugar fun) (desugar body))]
     [quoteS  (s) (quoteC s)]
+    [loadS   (s) (loadC (desugar s))]
     ))
 
 
@@ -106,14 +109,20 @@
     [multC (l r) (num* (interp l env) (interp r env))]
     [ifC (c s n) (if (zero? (numV-n (interp c env))) (interp n env) (interp s env))]
     [letrecC (sym fun body)
-          (local ([define f-value '()]) ; f-value descreve melhor a ideia
+         (local ([define f-value '()]) 
             (begin
-              (display sym) (newline)
-              (set! sym fun)
-              (display sym) (newline)
-              (display 'alterar_func_em_tempo_exec) (newline)
-              (display 'retornar_a_func) (newline)))]
+              (set! f-value (interp fun env))
+              (displayln f-value)
+              (numV 99999)
+              ))]
     [quoteC (s) (simbolV s)]
+    [loadC (s)
+         (local ([define in (open-input-file (symbol->string (simbolV-s (interp s env))))])
+           (do ((line (read in) (read in))) ((eof-object? line))
+              (println (interpS line))
+             )
+           (close-input-port in)
+           )]
     ))
 
 ; Lookup para procurar símbolos no Environment
@@ -146,6 +155,7 @@
          [(let*) (let*S (first (first (second sl))) (parse (second (first (second sl)))) (first (second (second sl))) (parse (second (second (second sl)))) (parse (third sl)))]
          [(letrec) (letrecS (first (first (second sl))) (parse (second (first (second sl)))) (parse (third sl)))]
          [(quote) (quoteS (second sl))]
+         [(load) (loadS (parse (second sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -159,29 +169,37 @@
       (numV 15))
 (interpS '(+ 10 (call (func x (+ x x)) 16)))
 
+
+; Meus Testes
+(displayln "######## TESTE LET ########")
+(test (interpS '(let [(x 3)] x)) (numV 3))
+(test (interpS '(let [(x 2)] (+ x x))) (numV 4))
+(test (interpS '(let [(x (+ 1 2))] (+ x x))) (numV 6))
+(test (interpS '(let [(fun (lambda x 2))] (call fun 3))) (numV 2))
+
+(displayln "######## TESTE LET* ########")
+(test (interpS '(let* [(a 1) (b 1)] (+ a b))) (numV 2))
+(test (interpS '(let* [(a 1) (b (+ a 1))] (+ a b))) (numV 3))
+
+;(displayln "######## TESTE LETREC ########")
+;(test (interpS '(letrec ([f (lambda n n)]) (call f 3))) (numV 3))
+;(interpS '(letrec ([f (lambda n n)]) (call f 3)))
+
+(displayln "######## TESTE QUOTE ########")
+(test (interpS '(quote a)) (simbolV 'a))
+(test (interpS '(quote alan)) (simbolV 'alan))
+
+(displayln "######## TESTE LOAD ########")
+(interpS '(load (quote test.txt)))
+
+
+
 ; Meus testes
 ;(interpS '(~ 3))
 ;(interpS '(lambda x (+ x 2)))
 ;(interpS '(call (lambda x (+ x x)) 16))
 ;(interpS '(call (lambda x 2) 3))
 ;(interpS '(let x 3 (+ x x)))
-
-; Teste let
-;(test (interpS '(let [(x 2)] (+ x x))) (numV 4))
-;(test (interpS '(let [(x (+ 1 2))] (+ x x))) (numV 6))
-;(test (interpS '(let [(fun (lambda x 2))] (call fun 3))) (numV 2))
-
-; Teste let*
-;(test (interpS '(let* [(a 1) (b 1)] (+ a b))) (numV 2))
-;(test (interpS '(let* [(a 1) (b (+ a 1))] (+ a b))) (numV 3))
-
-; Testes x
-;(test (interpS '(let ([x 3]) x)) (numV 3))
-;(test (interpS '(let* ([x 1] [y 2]) (+ x y))) (numV 3))
-
-; Testes letrec
-;(test (interpS '(letrec ([f (lambda n n)]) (call f 3))) (numV 3))
-(interpS '(letrec ([f (lambda n n)]) (call f 3)))
 
 
 ;(interpS '(letrec [(sum (lambda (n)
@@ -190,27 +208,18 @@
 ;                                    0)))]
 ;            (sum 3)))
 
-;(test (interpS '(quote alan)) (simbolV 'alan))
+
 
 ;(letrec [(sum (lambda (n)
-;                                (if (equal? 0 n)
-;                                    0
-;                                    (+ n (sum (- n 1))))))
-;                                    ]
+;    (if (equal? 0 n)
+;         0
+;         (+ n (sum (- n 1))))))
+;     ]
 ;  (sum 3))
 
-;(define w 1)
-;(define y 10)
-;(define z 100)
 
-;(+ w
-;   (begin (set! y (+ y 1)) y) 
-;   z)
+;(define in (open-input-file "test.txt"))
 
-(define soma
-  (lambda (x y)
-    (+ x y)))
-
-(define soma1
-  (lambda (z)
-    (soma z 1)))
+;(do ((line (read in) (read in))) ((eof-object? line))
+;  (displayln (interpS line))
+; )
