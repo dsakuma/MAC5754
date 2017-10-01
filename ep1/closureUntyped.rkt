@@ -181,16 +181,18 @@
 (test (interpS '(let* [(a 1) (b 1)] (+ a b))) (numV 2))
 (test (interpS '(let* [(a 1) (b (+ a 1))] (+ a b))) (numV 3))
 
-;(displayln "######## TESTE LETREC ########")
-;(test (interpS '(letrec ([f (lambda n n)]) (call f 3))) (numV 3))
-;(interpS '(letrec ([f (lambda n n)]) (call f 3)))
-
 (displayln "######## TESTE QUOTE ########")
 (test (interpS '(quote a)) (simbolV 'a))
 (test (interpS '(quote alan)) (simbolV 'alan))
 
 (displayln "######## TESTE LOAD ########")
 (interpS '(load (quote test.txt)))
+
+(displayln "######## TESTE LETREC ########")
+;(test (interpS '(letrec ([f (lambda (n) (if (n) 1 (* n (fac (- n 1)))))]) (call fac 3))) (numV 6))
+;(test (interpS '(letrec ([f (lambda n n)]) (call f 3))) (numV 3))
+;(interpS '(letrec ([f (lambda n n)]) (call f 3)))
+(interpS '(letrec [(fact (lambda n (if n (* n (call fact (- n 1))) 1)))] (call fact 3)))
 
 
 
@@ -223,3 +225,7 @@
 ;(do ((line (read in) (read in))) ((eof-object? line))
 ;  (displayln (interpS line))
 ; )
+
+;(letrec ([fac (lambda (n)
+;                     (if (= n 0) 1 (* n (fac (- n 1)))))])
+;  (fac 3))
