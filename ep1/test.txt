@@ -1,2 +1,5 @@
 (+ 4 2)
 (* 4 2)
+(let [(fun (lambda x 2))] (call fun 3))
+(let* [(a 1) (b (+ a 1))] (+ a b))
+(quote alan)
