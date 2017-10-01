@@ -111,9 +111,16 @@
     [letrecC (sym fun body)
          (local ([define f-value '()]) 
             (begin
-              (set! f-value (interp fun env))
-              (displayln f-value)
-              (numV 99999)
+              (set! f-value (interp fun (extend-env 
+                        (bind sym (interp fun env))
+                        env ; não mais mt-env
+                    )))
+              ;(set! f-value (interp fun (extend-env env env)))
+
+              (interp body (extend-env 
+                        (bind sym (interp fun env))
+                        env ; não mais mt-env
+                    ))
               ))]
     [quoteC (s) (simbolV s)]
     [loadC (s)
@@ -127,6 +134,7 @@
 
 ; Lookup para procurar símbolos no Environment
 (define (lookup for env); [for : symbol] [env : Env]) => Value
+       (displayln env)
        (cond
             [(empty? env) (error 'lookup (string-append (symbol->string for) " não foi encontrado"))] ; livre (não definida)
             [else (cond
