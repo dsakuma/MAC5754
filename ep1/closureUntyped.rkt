@@ -188,7 +188,7 @@
 (test (interpS '(quote alan)) (symV 'alan))
 
 (displayln "######## TESTE LOAD ########")
-(interpS '(load (quote test.txt)))
+(interpS '(load (quote arquivo.txt)))
 (newline)
 
 (displayln "######## TESTE LETREC ########")
