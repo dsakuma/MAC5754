@@ -73,7 +73,7 @@
 (define-type Value
   [numV  (n  number?)]
   [closV (arg  symbol?) (body  ExprC?) (env  list?)]
-  [simbolV (s symbol?)])
+  [symV (s symbol?)])
 
 
 ; Novos operadores
@@ -111,20 +111,15 @@
     [letrecC (sym fun body)
          (local ([define f-value '()]) 
             (begin
-              (set! f-value (interp fun (extend-env 
-                        (bind sym (interp fun env))
-                        env ; não mais mt-env
-                    )))
-              ;(set! f-value (interp fun (extend-env env env)))
-
-              (interp body (extend-env 
-                        (bind sym (interp fun env))
-                        env ; não mais mt-env
-                    ))
+              ;(set! f-value (interp fun (extend-env (bind sym (interp fun env)) env)))
+              ;(displayln f-value)
+              ;(set! f-value (interp (closV-body f-value) (extend-env (bind sym (closV-env f-value)) env)))
+              ;(interp body (extend-env (bind sym f-value) env))
+              (symV 'NOT_IMPLEMENTED)
               ))]
-    [quoteC (s) (simbolV s)]
+    [quoteC (s) (symV s)]
     [loadC (s)
-         (local ([define in (open-input-file (symbol->string (simbolV-s (interp s env))))])
+         (local ([define in (open-input-file (symbol->string (symV-s (interp s env))))])
            (do ((line (read in) (read in))) ((eof-object? line))
               (println (interpS line))
              )
@@ -177,7 +172,6 @@
       (numV 15))
 (interpS '(+ 10 (call (func x (+ x x)) 16)))
 
-
 ; Meus Testes
 (displayln "######## TESTE LET ########")
 (test (interpS '(let [(x 3)] x)) (numV 3))
@@ -190,50 +184,12 @@
 (test (interpS '(let* [(a 1) (b (+ a 1))] (+ a b))) (numV 3))
 
 (displayln "######## TESTE QUOTE ########")
-(test (interpS '(quote a)) (simbolV 'a))
-(test (interpS '(quote alan)) (simbolV 'alan))
+(test (interpS '(quote a)) (symV 'a))
+(test (interpS '(quote alan)) (symV 'alan))
 
 (displayln "######## TESTE LOAD ########")
 (interpS '(load (quote test.txt)))
+(newline)
 
 (displayln "######## TESTE LETREC ########")
-;(test (interpS '(letrec ([f (lambda (n) (if (n) 1 (* n (fac (- n 1)))))]) (call fac 3))) (numV 6))
-;(test (interpS '(letrec ([f (lambda n n)]) (call f 3))) (numV 3))
-;(interpS '(letrec ([f (lambda n n)]) (call f 3)))
-(interpS '(letrec [(fact (lambda n (if n (* n (call fact (- n 1))) 1)))] (call fact 3)))
-
-
-
-; Meus testes
-;(interpS '(~ 3))
-;(interpS '(lambda x (+ x 2)))
-;(interpS '(call (lambda x (+ x x)) 16))
-;(interpS '(call (lambda x 2) 3))
-;(interpS '(let x 3 (+ x x)))
-
-
-;(interpS '(letrec [(sum (lambda (n)
-;                                (if n
-;                                    (+ n (sum (- n 1)))
-;                                    0)))]
-;            (sum 3)))
-
-
-
-;(letrec [(sum (lambda (n)
-;    (if (equal? 0 n)
-;         0
-;         (+ n (sum (- n 1))))))
-;     ]
-;  (sum 3))
-
-
-;(define in (open-input-file "test.txt"))
-
-;(do ((line (read in) (read in))) ((eof-object? line))
-;  (displayln (interpS line))
-; )
-
-;(letrec ([fac (lambda (n)
-;                     (if (= n 0) 1 (* n (fac (- n 1)))))])
-;  (fac 3))
+(test (interpS '(letrec [(fact (lambda n (if n (* n (call fact (- n 1))) 1)))] (call fact 5))) (numV 120))
