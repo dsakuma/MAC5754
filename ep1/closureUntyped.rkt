@@ -129,7 +129,6 @@
 
 ; Lookup para procurar símbolos no Environment
 (define (lookup for env); [for : symbol] [env : Env]) => Value
-       (displayln env)
        (cond
             [(empty? env) (error 'lookup (string-append (symbol->string for) " não foi encontrado"))] ; livre (não definida)
             [else (cond
