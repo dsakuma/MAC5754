@@ -1,0 +1,18 @@
+#lang Racket
+
+(define (soma-sexpr  l )
+  (if (null? l) 0
+      (if (number? l) l
+          (+ (soma-sexpr (car l)) (soma-sexpr (cdr l))))))
+(define (soma-sexpr-2  l ) (soma-certa-aux l 0))
+(define (soma-certa-aux  l  tmp)
+  (if (null? l) tmp
+      (if (number? l) (+ l tmp)
+          (begin (set tmp (soma-certa-aux (car l) tmp))
+                 (display tmp)
+                 (soma-certa-aux (cdr l)  tmp)))))
+(define (soma-sexpr-aux2  l  tmp)
+  (if (null? l) tmp
+      (if (number? l) (+ l tmp)
+          (soma-sexpr-aux2 (cdr l) (+ (car l) tmp)))))
+
