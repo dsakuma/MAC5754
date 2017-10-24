@@ -109,14 +109,13 @@
     [multC (l r) (num* (interp l env) (interp r env))]
     [ifC (c s n) (if (zero? (numV-n (interp c env))) (interp n env) (interp s env))]
     [letrecC (sym fun body)
-         (local ([define f-value '()]) 
-            (begin
-              ;(set! f-value (interp fun (extend-env (bind sym (interp fun env)) env)))
-              ;(displayln f-value)
-              ;(set! f-value (interp (closV-body f-value) (extend-env (bind sym (closV-env f-value)) env)))
-              ;(interp body (extend-env (bind sym f-value) env))
-              (symV 'NOT_IMPLEMENTED)
-              ))]
+               (local ([define fun-clos
+                         (interp fun mt-env)] ;cria um fechamento capturando o ambiente vazio 
+                       [define fixed-env
+                         (extend-env (bind sym fun-clos) env)]) ; cria um ambiente onde fac aponta para o fechamento fun-clos
+                      (begin
+                        (set-closV-env! fun-clos fixed-env)
+                        (interp body fixed-env)))]
     [quoteC (s) (symV s)]
     [loadC (s)
          (local ([define in (open-input-file (symbol->string (symV-s (interp s env))))])
