@@ -272,6 +272,7 @@
          [(cons) (consS (parse (second sl)) (parse (third sl)))]
          [(car) (carS (parse (second sl)))]
          [(cdr) (cdrS (parse (second sl)))]
+         [(equal?) (equal?S (parse (second sl)) (parse (third sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -295,3 +296,9 @@
               mt-env mt-store))
       (numV 10))
 
+; MEUS TESTES BÁSICOS
+(test (v*s-v (interpS '(+ 3 1))) (numV 4))
+
+
+; TESTE EQUAL?
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
