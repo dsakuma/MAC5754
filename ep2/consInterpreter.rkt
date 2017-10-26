@@ -153,6 +153,7 @@
         [else
              (numV 0)]))
 
+
 ; New return type for our interpreter, Env and Store
 (define-type Result
       [v*s (v : Value) (s : Store)])
@@ -262,6 +263,7 @@
                     (type-case Result (interp r env s-l)
                       [v*s (v-r s-r)
                            (v*s (num-equal? v-l v-r) s-r)])])]
+
     ))
 
 
@@ -319,8 +321,5 @@
 ; TESTE EQUAL?
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
-;(test (v*s-v (interpS '(equal? (cons 5 4) (cons 5 4)))) (numV 1))
-
-
-
-
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 2 2)))) (numV 1))
+(test (v*s-v (interpS '(equal? (+ 10 (call (lambda x (car x)) (cons 15 16)))  (+ 10 (call (lambda x (car x)) (cons 15 16)))) )) (numV 1))
