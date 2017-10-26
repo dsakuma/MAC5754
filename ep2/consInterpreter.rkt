@@ -20,6 +20,7 @@
   [carC    (pair : ExprC)]; Gets 1st element of a pair
   [cdrC    (pair : ExprC)]; Gets 2nd element of a pair
   [setC    (var : symbol) (arg : ExprC)]; Attribution of variable
+  [equal?C (l : ExprC) (r : ExprC)]
   )
 
 
@@ -41,6 +42,7 @@
   [carS    (pair : ExprS)]
   [cdrS    (pair : ExprS)]
   [setS    (var : symbol) (arg : ExprS)]
+  [equal?S  (l : ExprS) (r : ExprS)]
   )
 
 
@@ -63,6 +65,7 @@
     [carS    (c)        (carC (desugar c))]
     [cdrS    (c)        (cdrC (desugar c))]
     [setS    (var expr) (setC  var (desugar expr))]
+    [equal?S (l r)      (equal?C (desugar l) (desugar r))] 
     ))
 
 
@@ -143,6 +146,12 @@
         [else
              (error 'num* "Um dos argumentos não é número")]))
 
+(define (num-equal? [l : Value] [r : Value]) : Value
+    (cond
+        [(equal? (numV-n l) (numV-n r))
+             (numV 1)]
+        [else
+             (numV 0)]))
 
 ; New return type for our interpreter, Env and Store
 (define-type Result
@@ -246,6 +255,13 @@
                 [v*s (v-c s-c)
                      (v*s (fetch (consV-cdr v-c) s-c)
                           s-c)])]
+
+    [equal?C (l r) 
+           (type-case Result (interp l env sto)
+               [v*s (v-l s-l)
+                    (type-case Result (interp r env s-l)
+                      [v*s (v-r s-r)
+                           (v*s (num-equal? v-l v-r) s-r)])])]
     ))
 
 
@@ -302,3 +318,9 @@
 
 ; TESTE EQUAL?
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
+;(test (v*s-v (interpS '(equal? (cons 5 4) (cons 5 4)))) (numV 1))
+
+
+
+
