@@ -110,9 +110,9 @@
     [ifC (c s n) (if (zero? (numV-n (interp c env))) (interp n env) (interp s env))]
     [letrecC (sym fun body)
                (local ([define fun-clos
-                         (interp fun mt-env)] ;cria um fechamento capturando o ambiente vazio 
+                         (interp fun mt-env)] ;cria o fechamento FUN-CLOS capturando o ambiente vazio 
                        [define fixed-env
-                         (extend-env (bind sym fun-clos) env)]) ; cria um ambiente onde fac aponta para o fechamento fun-clos
+                         (extend-env (bind sym fun-clos) env)]) ; cria o ambiente FIXED-ENV onde sym aponta para o fechamento FUN-CLOS
                       (begin
                         (set-closV-env! fun-clos fixed-env)
                         (interp body fixed-env)))]

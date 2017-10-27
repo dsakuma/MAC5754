@@ -43,10 +43,12 @@
   [cdrS    (pair : ExprS)]
   [setS    (var : symbol) (arg : ExprS)]
   [equal?S  (l : ExprS) (r : ExprS)]
+  [letS    (s : symbol) (v : ExprS) (body : ExprS)]
+  [let*S   (s1 : symbol) (v1 : ExprS) (s2 : symbol) (v2 : ExprS) (body : ExprS)]
   )
 
 
-(define (desugar [as : ExprS]) : ExprC  
+(define (desugar [as : ExprS]) : ExprC
   (type-case ExprS as
     [numS    (n)        (numC n)]
     [idS     (s)        (idC s)]
@@ -67,6 +69,7 @@
     [setS    (var expr) (setC  var (desugar expr))]
     [equal?S (l r)      (equal?C (desugar l) (desugar r))]
     [letS    (s v b) (appC (lamC s (desugar b)) (desugar v))]
+    [let*S   (s1 v1 s2 v2 b) (appC (lamC s1 (appC (lamC s2 (desugar b)) (desugar v2))) (desugar v1))]
     ))
 
 
@@ -292,7 +295,8 @@
          [(car) (carS (parse (second sl)))]
          [(cdr) (cdrS (parse (second sl)))]
          [(equal?) (equal?S (parse (second sl)) (parse (third sl)))]
-         [(let) (letS (first (first (second sl))) (parse (second (first (second sl)))) (parse (third sl)))]
+         [(let) (letS (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl)))))) (parse (second (s-exp->list (first (s-exp->list (second sl)))))) (parse (third sl)))]
+         [(let*) (let*S (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl)))))) (parse (second (s-exp->list (first (s-exp->list (second sl)))))) (s-exp->symbol (first (s-exp->list  (second (s-exp->list (second sl)))))) (parse (second (s-exp->list (second (s-exp->list (second sl)))))) (parse (third sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -321,6 +325,7 @@
 
 
 ; TESTE EQUAL?
+(display "######## TESTE EQUAL? ########\n")
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 2 2)))) (numV 1))
@@ -329,3 +334,7 @@
 ;TESTE LET
 (display "######## TESTE LET ########\n")
 (test (v*s-v (interpS '(let [(x 3)] x))) (numV 3))
+
+;TESTE LET*
+(display "######## TESTE LET* ########\n")
+(test (v*s-v (interpS '(let* [(a 1) (b 1)] (+ a b)))) (numV 2))
