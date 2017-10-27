@@ -65,7 +65,8 @@
     [carS    (c)        (carC (desugar c))]
     [cdrS    (c)        (cdrC (desugar c))]
     [setS    (var expr) (setC  var (desugar expr))]
-    [equal?S (l r)      (equal?C (desugar l) (desugar r))] 
+    [equal?S (l r)      (equal?C (desugar l) (desugar r))]
+    [letS    (s v b) (appC (lamC s (desugar b)) (desugar v))]
     ))
 
 
@@ -291,6 +292,7 @@
          [(car) (carS (parse (second sl)))]
          [(cdr) (cdrS (parse (second sl)))]
          [(equal?) (equal?S (parse (second sl)) (parse (third sl)))]
+         [(let) (letS (first (first (second sl))) (parse (second (first (second sl)))) (parse (third sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -323,3 +325,7 @@
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 2 2)))) (numV 1))
 (test (v*s-v (interpS '(equal? (+ 10 (call (lambda x (car x)) (cons 15 16)))  (+ 10 (call (lambda x (car x)) (cons 15 16)))) )) (numV 1))
+
+;TESTE LET
+(display "######## TESTE LET ########\n")
+(test (v*s-v (interpS '(let [(x 3)] x))) (numV 3))
