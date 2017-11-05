@@ -292,28 +292,41 @@
 
 
 
+
 ; Examples
 ;(interpS '(+ 10 (call (lambda x (car x)) (cons 15 16))))
 
 
 ; Tests
-;(test (v*s-v (interp (carC (consC (numC 10) (numC 20)))
-;              mt-env mt-store))
-;      (numV 10))
+(test (v*s-v (interp (carC (consC (numC 10) (numC 20)))
+              mt-env mt-store))
+      (numV 10))
 
 
+(display "######## TESTE BASICO ########\n")
+(test (v*s-v (interpS '(+ 3 1))) (numV 4))
 
+(display "######## TESTE EQUAL? ########\n")
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 2 2)))) (numV 1))
+(test (v*s-v (interpS '(equal? (+ 10 (call (lambda x (car x)) (cons 15 16)))  (+ 10 (call (lambda x (car x)) (cons 15 16)))) )) (numV 1))
 
-(test (v*s-v (interpS '(cons (* 2 2) (* 3 1))))
-      (consV 1 2))
+(display "######## TESTE LET ########\n")
+(test (v*s-v (interpS '(let [(x 3)] x))) (numV 3))
+
+(display "######## TESTE LET* ########\n")
+(test (v*s-v (interpS '(let* [(a 1) (b 1)] (+ a b)))) (numV 2))
+
+(display "######## TESTE THUNK ########\n")
+;(test (v*s-v (interpS '(cons (* 2 2) (* 3 1))))
+;      (consV 1 2))
 
 (test (v*s-v (interpS '(car (cons (* 2 2) (* 3 1)))))
       (numV 4))
 
 (test (v*s-v (interpS '(cdr (cons (* 2 2) (* 3 1)))))
       (numV 3))
-
-
 
 (test (v*s-v (interpS '(let* [(a (cons (+ 1 2) (* 4 1))) (b (+ (car a) (car a)))] (* b 2))))
       (numV 12))
@@ -350,6 +363,3 @@
 
 (test (v*s-v (interpS '(let [(fact (lambda n (+ n 1)))] (call fact 33))))
       (numV 34))
-
-(test (v*s-v (interpS '(let [(a (cons (+ 1 2) (* 4 1)))] (car a))))
-      (numV 3))

@@ -108,36 +108,18 @@
 
 ; fetch is equivalent to a lookup for the store
 (define (fetch [l : Location] [sto : Store]) : Value
-       (begin
-;         (display "inicio fetch \n")
-;         (display "l ->")
-;         (display l)
-;         (display "\n")
-;         (display "cell-location -> \n")
-;         (display (cell-location (first sto)))
-;         (display "\n")
        (cond
             [(empty? sto) (error 'fetch "posição não encontrada")]
             [else (cond
                   [(= l (cell-location (first sto)))   ; achou!
-                                 (begin
-;                                   (display "first sto -> ")
-;                                   (display (first sto))
-;                                   (display "\n")
-;                                   (display "sto ->")
-;                                   (display sto)
-;                                   (display "\n")
-;                                   (display "cell-val first sto ->")
-;                                   (display (cell-val (first sto)))
-;                                   (display "\n")
                                     (let* ((unboxed-val (unbox (cell-val (first sto)))) 
                                            (result (type-case Value unboxed-val
                                                     [suspV (body env) (interp body env sto)]
                                                     [else (v*s unboxed-val sto)])))
                                       (begin
                                         (set-box! (cell-val (first sto)) (v*s-v result))
-                                        (v*s-v result))))]
-                  [else (fetch l (rest sto))])])))        ; vê no resto
+                                        (v*s-v result)))]
+                  [else (fetch l (rest sto))])]))        ; vê no resto
 
 
 ; Returns the next location available
@@ -191,8 +173,6 @@
     [appC (f a)
       (type-case Result (interp f env sto) ; find the function
          [v*s (v-f s-f)
-              ; nao interpretar o exp a
-              ; criar um thunk, guardar em memoria
               (let ((where-a (new-loc))
                     (v-a (suspV a env)))
                 (interp (closV-body v-f) ; body
@@ -294,23 +274,35 @@
 
 
 ; Tests
-;(test (v*s-v (interp (carC (consC (numC 10) (numC 20)))
-;              mt-env mt-store))
-;      (numV 10))
+(test (v*s-v (interp (carC (consC (numC 10) (numC 20)))
+              mt-env mt-store))
+      (numV 10))
 
 
+(display "######## TESTE BASICO ########\n")
+(test (v*s-v (interpS '(+ 3 1))) (numV 4))
 
+(display "######## TESTE EQUAL? ########\n")
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
+(test (v*s-v (interpS '(equal? (+ 1 3) (+ 2 2)))) (numV 1))
+(test (v*s-v (interpS '(equal? (+ 10 (call (lambda x (car x)) (cons 15 16)))  (+ 10 (call (lambda x (car x)) (cons 15 16)))) )) (numV 1))
 
-(test (v*s-v (interpS '(cons (* 2 2) (* 3 1))))
-      (consV 1 2))
+(display "######## TESTE LET ########\n")
+(test (v*s-v (interpS '(let [(x 3)] x))) (numV 3))
+
+(display "######## TESTE LET* ########\n")
+(test (v*s-v (interpS '(let* [(a 1) (b 1)] (+ a b)))) (numV 2))
+
+(display "######## TESTE THUNK ########\n")
+;(test (v*s-v (interpS '(cons (* 2 2) (* 3 1))))
+;      (consV 1 2))
 
 (test (v*s-v (interpS '(car (cons (* 2 2) (* 3 1)))))
       (numV 4))
 
 (test (v*s-v (interpS '(cdr (cons (* 2 2) (* 3 1)))))
       (numV 3))
-
-
 
 (test (v*s-v (interpS '(let* [(a (cons (+ 1 2) (* 4 1))) (b (+ (car a) (car a)))] (* b 2))))
       (numV 12))
