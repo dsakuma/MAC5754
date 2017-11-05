@@ -351,7 +351,5 @@
 (test (v*s-v (interpS '(let [(fact (lambda n (+ n 1)))] (call fact 33))))
       (numV 34))
 
-
-
 (test (v*s-v (interpS '(let [(a (cons (+ 1 2) (* 4 1)))] (car a))))
       (numV 3))
