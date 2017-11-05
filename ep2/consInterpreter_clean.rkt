@@ -12,14 +12,10 @@
   [lamC    (arg : symbol) (body : ExprC)]
   [appC    (fun : ExprC) (arg : ExprC)]
   [ifC     (cond : ExprC) (y : ExprC) (n : ExprC)]
-  [boxC    (arg : ExprC)]; Create a box
-  [unboxC  (arg : ExprC)]; Unpacks the value inside a box
-  [setboxC (b : ExprC) (v : ExprC)]; Replaces the value inside a box
   [seqC    (b1 : ExprC) (b2 : ExprC)]; Executes b1 then b2
   [consC   (car : ExprC) (cdr : ExprC)]; Creates cell with a pair
   [carC    (pair : ExprC)]; Gets 1st element of a pair
   [cdrC    (pair : ExprC)]; Gets 2nd element of a pair
-  [setC    (var : symbol) (arg : ExprC)]; Attribution of variable
   [equal?C (l : ExprC) (r : ExprC)]
   )
 
@@ -34,14 +30,10 @@
   [uminusS (e : ExprS)]
   [multS   (l : ExprS) (r : ExprS)]
   [ifS     (c : ExprS) (y : ExprS) (n : ExprS)]
-  [boxS    (a : ExprS)]
-  [unboxS  (a : ExprS)]
-  [setboxS (b : ExprS) (v : ExprS)]
   [seqS    (b1 : ExprS) (b2 : ExprS)]
   [consS   (car : ExprS) (cdr : ExprS)]
   [carS    (pair : ExprS)]
   [cdrS    (pair : ExprS)]
-  [setS    (var : symbol) (arg : ExprS)]
   [equal?S  (l : ExprS) (r : ExprS)]
   [letS    (s : symbol) (v : ExprS) (body : ExprS)]
   [let*S   (s1 : symbol) (v1 : ExprS) (s2 : symbol) (v2 : ExprS) (body : ExprS)]
@@ -59,14 +51,10 @@
     [bminusS (l r)      (plusC (desugar l) (multC (numC -1) (desugar r)))]
     [uminusS (e)        (multC (numC -1) (desugar e))]
     [ifS     (c y n)    (ifC (desugar c) (desugar y) (desugar n))]
-    [boxS    (a)        (boxC   (desugar a))]
-    [unboxS  (a)        (unboxC (desugar a))]
-    [setboxS (b v)      (setboxC (desugar b) (desugar v))]
     [seqS    (b1 b2)    (seqC (desugar b1) (desugar b2))]
     [consS   (b1 b2)    (consC (desugar b1) (desugar b2))]
     [carS    (c)        (carC (desugar c))]
     [cdrS    (c)        (cdrC (desugar c))]
-    [setS    (var expr) (setC  var (desugar expr))]
     [equal?S (l r)      (equal?C (desugar l) (desugar r))]
     [letS    (s v b) (appC (lamC s (desugar b)) (desugar v))]
     [let*S   (s1 v1 s2 v2 b) (appC (lamC s1 (appC (lamC s2 (desugar b)) (desugar v2))) (desugar v1))]
@@ -208,40 +196,6 @@
                             (interp n env s-c)
                             (interp s env s-c))])]
     
-    ; Creates a box: it needs a value and a new location
-    [boxC (a) 
-          (type-case Result (interp a env sto)
-            [v*s (v-a s-a)
-                 (let ([where (new-loc)])
-                   (v*s (boxV where) 
-                        (override-store (cell where v-a) s-a)))])]
-                        
-    ; Get the value from a box                
-    [unboxC (a) (type-case Result (interp a env sto)
-                  [v*s (v-a s-a)
-                       (v*s 
-                        (fetch (boxV-l v-a) s-a) ; value
-                        s-a                      ; store
-                        )])]
-
-    ; Replace the value inside a box
-    [setboxC (b v) (type-case Result (interp b env sto); Result is a pair
-                     [v*s (v-b s-b)
-                          (type-case Result (interp v env s-b)
-                            [v*s (v-v s-v)
-                                 (v*s v-v
-                                      (override-store 
-                                       (cell (boxV-l v-b)
-                                             v-v)
-                                       s-v))])])]
-    ; Attribution of variables
-    [setC (var val) (type-case Result (interp val env sto)
-                      [v*s (v-val s-val)
-                           (let ([where (lookup var env)]) ; finds the variable
-                             (v*s v-val
-                                  (override-store ; updates
-                                   (cell where v-val) s-val)))])]
-    
     ; Working with lists
 ;    [consC (b1 b2) (type-case Result (interp b1 env sto)
 ;                     [v*s (v-b1 s-b1)
@@ -328,11 +282,7 @@
          [(lambda) (lamS (s-exp->symbol (second sl)) (parse (third sl)))] ; definição
          [(call) (appS (parse (second sl)) (parse (third sl)))]
          [(if) (ifS (parse (second sl)) (parse (third sl)) (parse (fourth sl)))]
-         [(-#) (boxS (parse (second sl)))]
-         [(>#) (unboxS (parse (second sl)))]
-         [(!#) (setboxS (parse (second sl)) (parse (third sl)))]
          [(seq) (seqS (parse (second sl)) (parse (third sl)))]
-         [(:=) (setS (s-exp->symbol (second sl)) (parse (third sl)))]
          [(cons) (consS (parse (second sl)) (parse (third sl)))]
          [(car) (carS (parse (second sl)))]
          [(cdr) (cdrS (parse (second sl)))]
@@ -350,11 +300,11 @@
 ; Examples
 ;(interpS '(+ 10 (call (lambda x (car x)) (cons 15 16))))
 
-;(interpS '(call (lambda x (seq (:= x (+ x 5))x)) 8))
+;;(interpS '(call (lambda x (seq (:= x (+ x 5))x)) 8))
 
-;(interpS '(seq (!# (-# 2) 32) (># (-# 2) (+ (># (-# 2)) 10))))
+;;(interpS '(seq (!# (-# 2) 32) (># (-# 2) (+ (># (-# 2)) 10))))
 
-;(interpS '(call (lambda f (call f (-# 32))) (lambda x (seq (!# x (+ (># x) 10)) (># x)))))
+;;(interpS '(call (lambda f (call f (-# 32))) (lambda x (seq (!# x (+ (># x) 10)) (># x)))))
 
 
 ; Tests
@@ -402,7 +352,6 @@
 ;(interpS '(cons 4 5))
 ;(v*s (consV 21 22) (list (cell 22 (numV 5)) (cell 21 (numV 4))))
 ;(v*s (consV 21 22) (list (cell 22 (suspV (numC 5) '())) (cell 21 (suspV (numC 4) '()))))
-
 ;(interpS '(car (cons (cons 4 5) 6)))
 ;(v*s (consV 16 17) (list (cell 17 (suspV (numC 5) '())) (cell 16 (suspV (numC 4) '())) (cell 15 (suspV (numC 6) '())) (cell 14 (suspV (consC (numC 4) (numC 5)) '()))))"
 

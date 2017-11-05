@@ -243,65 +243,27 @@
                                    (cell where v-val) s-val)))])]
     
     ; Working with lists
-;    [consC (b1 b2) (type-case Result (interp b1 env sto)
-;                     [v*s (v-b1 s-b1)
-;                          (type-case Result (interp b2 env s-b1)
-;                            [v*s (v-b2 s-b2)
-;                                 (let ((where-b1 (new-loc)) (where-b2 (new-loc)))
-;                                   (v*s (consV where-b1 where-b2)
-;                                        (override-store (cell where-b2 v-b2)
-;                                                        (override-store (cell where-b1 v-b1)
-;                                                                        s-b2))))])])]
-
+    [consC (b1 b2) (type-case Result (interp b1 env sto)
+                     [v*s (v-b1 s-b1)
+                          (type-case Result (interp b2 env s-b1)
+                            [v*s (v-b2 s-b2)
+                                 (let ((where-b1 (new-loc)) (where-b2 (new-loc)))
+                                   (v*s (consV where-b1 where-b2)
+                                        (override-store (cell where-b2 v-b2)
+                                                        (override-store (cell where-b1 v-b1)
+                                                                        s-b2))))])])]
+    
     [carC (c) (type-case Result (interp c env sto)
                 [v*s (v-c s-c)
                      (begin
-                       ;pegar a location do car
-                       ;verificar se eh uma suspensao
-                       ;se for, interpretar, se nao, usar o valor
-                       (let* ((car-loc (consV-car v-c))
-                              (car-value (fetch car-loc s-c)))
-                         (begin (display car-loc)
-                                (display "\n")
-                                (display car-value)
-                                (display "\n")
-                                (type-case Value car-value
-                                  [suspV  (exp env) (interp exp env sto)]
-                                  [else (v*s (numV 101) sto)]
-
-                                ))
-                       ))])]
-         
+                       (v*s (fetch (consV-car v-c) s-c)
+                          s-c))])]
+    
+    
     [cdrC (c) (type-case Result (interp c env sto)
                 [v*s (v-c s-c)
-                     (begin
-                       ;pegar a location do car
-                       ;verificar se eh uma suspensao
-                       ;se for, interpretar, se nao, usar o valor
-                       (let* ((cdr-loc (consV-cdr v-c))
-                              (cdr-value (fetch cdr-loc s-c)))
-                         (begin (display cdr-loc)
-                                (display "\n")
-                                (display cdr-value)
-                                (display "\n")
-                                (type-case Value cdr-value
-                                  [suspV  (exp env) (interp exp env sto)]
-                                  [else (v*s (numV 101) sto)]
-
-                                ))
-                       ))])]
-         
-
-    
-    [consC (b1 b2)
-           (let ((where-b1 (new-loc))
-                 (where-b2 (new-loc))
-                 (v-b2 (suspV b2 env))
-                 (v-b1 (suspV b1 env)))
-             (v*s (consV where-b1 where-b2)
-                  (override-store (cell where-b2 v-b2)
-                                  (override-store (cell where-b1 v-b1)
-                                                  sto))))]
+                     (v*s (fetch (consV-cdr v-c) s-c)
+                          s-c)])]
 
     [equal?C (l r) 
            (type-case Result (interp l env sto)
@@ -347,63 +309,5 @@
 (define (interpS [s : s-expression]) (interp (desugar (parse s)) mt-env mt-store))
 
 
-; Examples
-;(interpS '(+ 10 (call (lambda x (car x)) (cons 15 16))))
 
-;(interpS '(call (lambda x (seq (:= x (+ x 5))x)) 8))
-
-;(interpS '(seq (!# (-# 2) 32) (># (-# 2) (+ (># (-# 2)) 10))))
-
-;(interpS '(call (lambda f (call f (-# 32))) (lambda x (seq (!# x (+ (># x) 10)) (># x)))))
-
-
-; Tests
-;(test (v*s-v (interp (carC (consC (numC 10) (numC 20)))
-;              mt-env mt-store))
-;      (numV 10))
-
-; MEUS TESTES BÁSICOS
-;(test (v*s-v (interpS '(+ 3 1))) (numV 4))
-
-
-; TESTE EQUAL?
-;(display "######## TESTE EQUAL? ########\n")
-;(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
-;(test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
-;(test (v*s-v (interpS '(equal? (+ 1 3) (+ 2 2)))) (numV 1))
-;(test (v*s-v (interpS '(equal? (+ 10 (call (lambda x (car x)) (cons 15 16)))  (+ 10 (call (lambda x (car x)) (cons 15 16)))) )) (numV 1))
-
-;TESTE LET
-;(display "######## TESTE LET ########\n")
-;(test (v*s-v (interpS '(let [(x 3)] x))) (numV 3))
-
-;TESTE LET*
-;(display "######## TESTE LET* ########\n")
-;(test (v*s-v (interpS '(let* [(a 1) (b 1)] (+ a b)))) (numV 2))
-
-
-; primeiro fazer o coms
-; depois o car
-; depois o exemplo de aplicar um lambda
-
-; temos que mexer no idc? e no lamC?
-; no lamC fazemos suspensao de arg
-; entender msg paca e email nayereh e pergunta chagas
-
-
-;I changed "cdrC", "carC" and "consC" and now results of "(interpS '(cons 4 5))"  and "(interpS '(car (cons (cons 4 5) 6)))" using laze evaluation are in
-
-;order   "(v*s (consV 18 19) (list (cell 19 (suspV (numC 5) '())) (cell 18 (suspV (numC 4) '()))))"         and       "(v*s (consV 16 17) (list (cell 17 (suspV 
-
-;(numC 5) '())) (cell 16 (suspV (numC 4) '())) (cell 15 (suspV (numC 6) '())) (cell 14 (suspV (consC (numC 4) (numC 5)) '()))))" !
-
-
-
-;(interpS '(cons 4 5))
-;(v*s (consV 21 22) (list (cell 22 (numV 5)) (cell 21 (numV 4))))
-;(v*s (consV 21 22) (list (cell 22 (suspV (numC 5) '())) (cell 21 (suspV (numC 4) '()))))
-
-;(interpS '(car (cons (cons 4 5) 6)))
-;(v*s (consV 16 17) (list (cell 17 (suspV (numC 5) '())) (cell 16 (suspV (numC 4) '())) (cell 15 (suspV (numC 6) '())) (cell 14 (suspV (consC (numC 4) (numC 5)) '()))))"
-
-;(interpS '(car (cons (+ 1 1) 5)))
+(interpS '(car (cons (+ 1 1) 5)))
