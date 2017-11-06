@@ -284,7 +284,6 @@
 (define (interpS [s : s-expression]) (interp (desugar (parse s)) mt-env mt-store))
 
 
-
 ; Examples
 ;(interpS '(+ 10 (call (lambda x (car x)) (cons 15 16))))
 
@@ -298,6 +297,7 @@
 (display "######## TESTE BASICO ########\n")
 (test (v*s-v (interpS '(+ 3 1))) (numV 4))
 
+
 (display "######## TESTE EQUAL? ########\n")
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 3)))) (numV 1))
 (test (v*s-v (interpS '(equal? (+ 1 3) (+ 1 2)))) (numV 0))
@@ -307,55 +307,18 @@
 (display "######## TESTE LET ########\n")
 (test (v*s-v (interpS '(let [(x 3)] x))) (numV 3))
 
+
 (display "######## TESTE LET* ########\n")
 (test (v*s-v (interpS '(let* [(a 1) (b 1)] (+ a b)))) (numV 2))
 
+
 (display "######## TESTE THUNK ########\n")
-(test (v*s-v (interpS '(car (cons (* 2 2) (* 3 1)))))
-      (numV 4))
-
-(test (v*s-v (interpS '(cdr (cons (* 2 2) (* 3 1)))))
-      (numV 3))
-
-(test (v*s-v (interpS '(let* [(a (cons (+ 1 2) (* 4 1))) (b (+ (car a) (car a)))] (* b 2))))
-      (numV 12))
-
-(test (v*s-v (interpS '(let* [(a (cons (+ 1 2) (* 4 1))) (b (+ (car a) 9))] (* b 2))))
-      (numV 24))
-
-(test (v*s-v (interpS '(let* [(a (cons (+ 1 2) (* 4 1))) (b (+ (car a) (car a)))] (* b 2))))
-      (numV 12))
-
-(test (v*s-v (interpS '(+ (car (cons (+ 1 2) (* 4 1))) 10)))
-      (numV 13))
-
-(test (v*s-v (interpS '(+ (let* [(fact (lambda n n)) (b (call fact 11))] b) 0)))
-      (numV 11))
-
-(test (v*s-v (interpS '(+ (let* [(fact (lambda n n)) (b (call fact 11))] (+ b (call fact 1))) 0)))
-      (numV 12))
-
-(test (v*s-v (interpS '(+ (let* [(fact (lambda n n)) (b (call fact 11))] (+ (call fact 1) b)) 0)))
-      (numV 12))
-
-(test (v*s-v (interpS '(* (let* [(fact (lambda n n)) (b (call fact 11))] b) 5)))
-      (numV 55))
-
-(test (v*s-v (interpS '(* (let* [(fact (lambda n n)) (b (call fact 11))] (* b (call fact 1))) 1)))
-      (numV 11))
-
-
-(test (v*s-v (interpS '(let* [(fact (lambda n n)) (b (call fact 11))] b)))
-      (numV 11))
-
+(test (v*s-v (interpS '(car (cons 1 2)))) (numV 1))
+(test (v*s-v (interpS '(car (cons (* 2 1) (* 3 1))))) (numV 2))
+(test (v*s-v (interpS '(cdr (cons (* 2 1) (* 3 1))))) (numV 3))
+(test (v*s-v (interpS '(let* [(fact (lambda n n)) (x (call fact 1))] x))) (numV 1))
 
 
 (display "######## TESTE LETREC ########\n")
-
-(interpS '(letrec [(a 10)] (+ a a)))
-(test (v*s-v (interpS '(letrec [(a 10)] (+ a a))))
-      (numV 20))
-
-(interpS '(letrec ([fact (lambda n (if n (* n (call fact (- n 1))) 1))]) (call fact 6)))
-(test (v*s-v (interpS '(letrec ([fact (lambda n (if n (* n (call fact (- n 1))) 1))]) (call fact 6))))
-      (numV 720))
+(test (v*s-v (interpS '(letrec [(x 3)] x))) (numV 3))
+(test (v*s-v (interpS '(letrec ([fact (lambda n (if n (* n (call fact (- n 1))) 1))]) (call fact 5)))) (numV 120))
