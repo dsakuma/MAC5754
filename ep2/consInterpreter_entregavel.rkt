@@ -17,6 +17,7 @@
   [carC    (pair : ExprC)]; Gets 1st element of a pair
   [cdrC    (pair : ExprC)]; Gets 2nd element of a pair
   [equal?C (l : ExprC) (r : ExprC)]
+  [letrecC (sym : symbol) (fun : ExprC) (body : ExprC)]
   )
 
 
@@ -37,6 +38,7 @@
   [equal?S  (l : ExprS) (r : ExprS)]
   [letS    (s : symbol) (v : ExprS) (body : ExprS)]
   [let*S   (s1 : symbol) (v1 : ExprS) (s2 : symbol) (v2 : ExprS) (body : ExprS)]
+  [letrecS    (s : symbol) (v : ExprS) (body : ExprS)]
   )
 
 
@@ -58,6 +60,7 @@
     [equal?S (l r)      (equal?C (desugar l) (desugar r))]
     [letS    (s v b) (appC (lamC s (desugar b)) (desugar v))]
     [let*S   (s1 v1 s2 v2 b) (appC (lamC s1 (appC (lamC s2 (desugar b)) (desugar v2))) (desugar v1))]
+    [letrecS    (s v b) (letrecC s (desugar v) (desugar b))]
     ))
 
 
@@ -68,7 +71,6 @@
 (define-type Value
   [numV  (n : number)]
   [closV (arg : symbol) (body : ExprC) (env : Env)]
-  [boxV  (l : Location)] ; Points to the location
   [consV (car : Location) (cdr : Location)]
   [suspV (body : ExprC) (env : Env)]
   )
@@ -235,8 +237,21 @@
                       [v*s (v-r s-r)
                            (v*s (num-equal? v-l v-r) s-r)])])]
 
+   [letrecC (sym fun body)
+           (let* (
+                  [where (new-loc)]
+                  [dummy-box (box (suspV (idC sym) env))] ;cria um box dummy
+                  [tmp-sto (override-store (cell where dummy-box) sto)] ;cria store contendo dummy-box
+                  [tmp-env (extend-env (bind sym where) env)] ;cria env onde sym aponta para localizacao do dummy-box
+                  [fun-clos (interp fun tmp-env tmp-sto)]) ;interpreta fun no tmp-env e no tmp-sto
+           
+                  (begin
+                    (set-box! dummy-box (v*s-v fun-clos)) ;atualiza valor do dummy-box com o closV resultante da interpretacao de fun-clos 
+                    (interp body tmp-env tmp-sto)))] ;agora o box contem um closV que aponta para a localizacao desse proprio box 
     ))
 
+
+;(box (suspV val env))))
 
 ; Parser with funny instructions for boxes
 (define (parse [s : s-expression]) : ExprS
@@ -260,6 +275,7 @@
          [(equal?) (equal?S (parse (second sl)) (parse (third sl)))]
          [(let) (letS (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl)))))) (parse (second (s-exp->list (first (s-exp->list (second sl)))))) (parse (third sl)))]
          [(let*) (let*S (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl)))))) (parse (second (s-exp->list (first (s-exp->list (second sl)))))) (s-exp->symbol (first (s-exp->list  (second (s-exp->list (second sl)))))) (parse (second (s-exp->list (second (s-exp->list (second sl)))))) (parse (third sl)))]
+         [(letrec) (letrecS (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl)))))) (parse (second (s-exp->list (first (s-exp->list (second sl)))))) (parse (third sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -295,9 +311,6 @@
 (test (v*s-v (interpS '(let* [(a 1) (b 1)] (+ a b)))) (numV 2))
 
 (display "######## TESTE THUNK ########\n")
-;(test (v*s-v (interpS '(cons (* 2 2) (* 3 1))))
-;      (consV 1 2))
-
 (test (v*s-v (interpS '(car (cons (* 2 2) (* 3 1)))))
       (numV 4))
 
@@ -331,11 +344,18 @@
 (test (v*s-v (interpS '(* (let* [(fact (lambda n n)) (b (call fact 11))] (* b (call fact 1))) 1)))
       (numV 11))
 
-(test (v*s-v (interpS '(* (let* [(fact (lambda n n)) (b (call fact 11))] (* (call fact 1) b)) 1)))
-      (numV 11))
 
 (test (v*s-v (interpS '(let* [(fact (lambda n n)) (b (call fact 11))] b)))
       (numV 11))
 
-(test (v*s-v (interpS '(let [(fact (lambda n (+ n 1)))] (call fact 33))))
-      (numV 34))
+
+
+(display "######## TESTE LETREC ########\n")
+
+(interpS '(letrec [(a 10)] (+ a a)))
+(test (v*s-v (interpS '(letrec [(a 10)] (+ a a))))
+      (numV 20))
+
+(interpS '(letrec ([fact (lambda n (if n (* n (call fact (- n 1))) 1))]) (call fact 6)))
+(test (v*s-v (interpS '(letrec ([fact (lambda n (if n (* n (call fact (- n 1))) 1))]) (call fact 6))))
+      (numV 720))
