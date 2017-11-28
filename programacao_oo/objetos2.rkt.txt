@@ -1,0 +1,128 @@
+#lang plai
+;funçoes auxiliares
+;ambientes para montar objetos e classes
+(define empty-env '())
+(define bind cons)
+(define extend-env (lambda (key value env)
+                   (cons (bind key value) env)))
+(define (lookup key env)
+  (if (empty? env) (error 'lookup (symbol->string key))
+      (if (equal? key (caar env))
+          (cdar env)
+          (lookup key (cdr env)))))
+
+
+;msg -> pego a classe, peço o método desejado, chamo com objeto na frente dos parametros
+(define (msg o m . a)
+  (let* ([theClass (class o)]
+         [theMethod ((theClass 'get-method)m)])
+    (apply theMethod (cons o a))))
+;acesso ao objeto
+(define get-field (lambda (object name) (unbox (lookup  name (state object)))))
+(define set-field! (lambda (object name  value) (set-box!  (lookup name (state object)) value)))
+(define class car)
+(define state cdr)
+
+;classe raiz: OBJECT
+
+
+(define object/class
+  (let ([theClass 'null])
+    (begin (set! theClass
+                 (lambda (m)
+                   (case m
+                     [(new) (cons theClass empty-env)];objetos desta classe nao tem conteudo
+                     [(get-method) (lambda (name) (lambda list (error 'lookup (symbol->string name))))];se busca de métodos chegar aqui, gera erro
+                     )))
+           theClass)))
+;agora vamos criar uma classe
+;do tipo
+;class parent/class::object/class {
+; int field1, field2;
+; void addFields(){return (field1 + field2);}
+; void field1!(value){field1 = value}
+;}
+(define parent/class 
+  (let* ([theClass 'dummy] ; para acessar a calssse
+         [superclass object/class]; herança definida nesta linha
+         ;para maior clareza, defino os métodos aqui
+         [addFields (lambda (object) ;all methods have receiver as argument
+                      (+ (get-field object 'field1)
+                         (get-field object 'field2)))]
+         [field1! (lambda (object value)
+                    (set-field! object 'field1 value ))]
+         )
+         ;interface padrao de calsse
+         (begin
+           (set! theClass
+                 (lambda (m)
+                   (case m
+                     ;primeiro definimos estrutura do objeto
+                     [(new) (let* ([superobject (superclass 'new)];capos da superclase
+                                   [field1 (box 0)] ; campo1 do objeto
+                                   [field2 (box 0)] ; campo 2 do objeto
+                                   )
+                              ;constroi objeto acrescentando aso campos da superclase
+                              (cons theClass
+                                    (extend-env 'field1 field1
+                                                (extend-env 'field2 field2
+                                                            (state superobject)))
+                                    ))]
+                     [(get-method) (lambda (m)
+                                   (case m
+                                     [(addFields) addFields]
+                                     [(field1!) field1!]
+                                     ;no method here, go to superclass
+                             [else ((superclass 'get-method) m)]))])))
+           
+           theClass)
+    ))
+(define obj1 (parent/class 'new))
+(msg obj1 'addFields)
+(msg obj1 'field1! 15)
+(msg obj1 'addFields)
+
+;vamos criar mais uma clase?
+;
+(define derived/class 
+  (let* ([theClass 'dummy] ; para acessar a calssse
+         [superclass parent/class]; herança definida nesta linha
+         ;para maior clareza, defino os métodos aqui
+         [addFields (lambda (object) ;method overriding
+                      (+ (get-field object 'field3)
+                         (get-field object 'field1)
+                         (get-field object 'field2)))]
+         [field3! (lambda (object value)
+                    (set-field! object 'field3 value ))]
+         )
+         ;interface padrao de calsse
+         (begin
+           (set! theClass
+                 (lambda (m)
+                   (case m
+                     ;primeiro definimos estrutura do objeto
+                     [(new) (let* ([superobject (superclass 'new)];capos da superclase
+                                   [field3 (box 0)] ; campo 3 do objeto
+                                   )
+                              ;constroi objeto acrescentando aso campos da superclase
+                              (cons theClass
+                                    (extend-env 'field3 field3
+                                                (state superobject))
+                                    ))]
+                     [(get-method) (lambda (m)
+                                   (case m
+                                     [(addFields) addFields]
+                                     [(field3!) field3!]
+                                     ;no method here, go to superclass
+                             [else ((superclass 'get-method) m)]))])))
+           
+           theClass)
+    ))
+
+(define obj2 (derived/class 'new))
+(msg obj2 'field3! 1)
+(msg obj2 'addFields); should return 1
+(msg obj2 'field1! 50); using method from superclass to set superclass field
+(msg obj2 'addFields); testing if it worked, should return 51
+
+ 

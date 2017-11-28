@@ -1,0 +1,28 @@
+14a15
+>   [letC  (name : symbol) (arg : ExprC) (body : ExprC)]
+30a32
+>   [letS    (name : symbol) (arg : ExprS) (body : ExprS)]
+47a50
+>     [letS    (n a b)    (letC n (desugar a) (desugar b))]
+93c96
+< ; Interpretador
+---
+> ; Interpreter
+124c127
+<     [seqC (e1 e2) (begin (interp e1 env) (interp e2 env))] ; env may change due to boxes
+---
+>     [seqC (b1 b2) (begin (interp b1 env) (interp b2 env))] ; No side effect between expressions!
+128a132,137
+> 
+>     ; Declaration of variable
+>     [letC (name arg body)
+>           (let* ([new-bind (bind name (box (interp arg env)))]
+>                  [new-env (extend-env new-bind env)])
+>             (interp body new-env))]
+148a158,160
+>          [(let) (letS (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl))))))
+>                       (parse (second (s-exp->list (first (s-exp->list (second sl))))))
+>                       (parse (third sl)))]
+160a173,174
+> 
+> (interpS '(let ([x 10]) x))
