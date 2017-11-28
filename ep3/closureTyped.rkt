@@ -13,6 +13,7 @@
   [seqC  (e1 : ExprC) (e2 : ExprC)]
   [setC  (var : symbol) (arg : ExprC)]
   [letC  (name : symbol) (arg : ExprC) (body : ExprC)]
+  [classC (parent : symbol) (ins-var : symbol) (m1 : symbol) (m2 : symbol)]
   )
 
 
@@ -30,6 +31,7 @@
   [seqS    (e1 : ExprS) (e2 : ExprS)]
   [setS    (var : symbol) (arg : ExprS)]
   [letS    (name : symbol) (arg : ExprS) (body : ExprS)]
+  [classS  (parent : symbol) (ins-var : symbol) (m1 : symbol) (m2 : symbol)]
   )
 
 
@@ -48,6 +50,7 @@
     [seqS    (e1 e2)    (seqC (desugar e1) (desugar e2))]
     [setS    (var expr) (setC  var (desugar expr))]
     [letS    (n a b)    (letC n (desugar a) (desugar b))]
+    [classS  (parent ins-var m1 m2) (classC parent ins-var m1 m2)]
     ))
 
 
@@ -55,6 +58,7 @@
 (define-type Value
   [numV  (n : number)]
   [closV (arg : symbol) (body : ExprC) (env : Env)]
+  [classV (parent : symbol) (ins-var : symbol) (m1 : symbol) (m2 : symbol)]
   )
 
 
@@ -135,6 +139,8 @@
           (let* ([new-bind (bind name (box (interp arg env)))]
                  [new-env (extend-env new-bind env)])
             (interp body new-env))]
+
+    [classC (parent ins-var m1 m2) (classV parent ins-var m1 m2)]
     ))
 
 
@@ -158,6 +164,7 @@
          [(let) (letS (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl))))))
                       (parse (second (s-exp->list (first (s-exp->list (second sl))))))
                       (parse (third sl)))]
+         [(class) (classS (s-exp->symbol (second sl)) (s-exp->symbol (third sl)) (s-exp->symbol (fourth sl)) (s-exp->symbol (fourth (rest sl))))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -172,3 +179,16 @@
 (interpS '(call (lambda x (seq (:= x 1) x)) 2))
 
 (interpS '(let ([x 10]) x))
+
+; Meus testes
+(interpS '(class Object a method1 method2))
+;(interpS '(class 
+
+
+
+; Test #0: Method call when instantiating Object
+(test/exn
+  (interpS
+    '(let ([obj (new Object 0)])
+       (send obj blah 42))) ; <-- Method does not exist!
+  "Class does not respond to the method blah")
