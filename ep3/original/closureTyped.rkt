@@ -13,7 +13,6 @@
   [seqC  (e1 : ExprC) (e2 : ExprC)]
   [setC  (var : symbol) (arg : ExprC)]
   [letC  (name : symbol) (arg : ExprC) (body : ExprC)]
-  [classC (parent : symbol) (ins-var : symbol) (m1 : symbol) (m2 : symbol)]
   )
 
 
@@ -31,7 +30,6 @@
   [seqS    (e1 : ExprS) (e2 : ExprS)]
   [setS    (var : symbol) (arg : ExprS)]
   [letS    (name : symbol) (arg : ExprS) (body : ExprS)]
-  [classS  (parent : symbol) (ins-var : symbol) (m1 : ExprS) (m2 : ExprS)]
   )
 
 
@@ -50,15 +48,13 @@
     [seqS    (e1 e2)    (seqC (desugar e1) (desugar e2))]
     [setS    (var expr) (setC  var (desugar expr))]
     [letS    (n a b)    (letC n (desugar a) (desugar b))]
-    [classS  (parent ins-var m1 m2) (classC parent ins-var m1 m2)]
     ))
 
 
 ; We need a new value for the box
 (define-type Value
   [numV  (n : number)]
-  [methodV (arg : symbol) (body : ExprC) (env : Env)]
-  [classV (parent : symbol) (ins-var : symbol) (m1 : symbol) (m2 : symbol)]
+  [closV (arg : symbol) (body : ExprC) (env : Env)]
   )
 
 
@@ -107,15 +103,15 @@
     [idC (n) (unbox (lookup n env))]
 
     ; Lambdas evaluate to closures, which save the environment
-    [lamC (a b) (methodV a b env)]
+    [lamC (a b) (closV a b env)]
 
     ; Application of function
     [appC (f a)
           (let ([f-value (interp f env)])
-            (interp (methodV-body f-value)
+            (interp (closV-body f-value)
                     (extend-env
-                        (bind (methodV-arg f-value) (box (interp a env)))
-                        (methodV-env f-value)
+                        (bind (closV-arg f-value) (box (interp a env)))
+                        (closV-env f-value)
                     )))]
 
     ; Sum two numbers using auxiliary function
@@ -139,8 +135,6 @@
           (let* ([new-bind (bind name (box (interp arg env)))]
                  [new-env (extend-env new-bind env)])
             (interp body new-env))]
-
-    [classC (parent ins-var m1 m2) (classV parent ins-var m1 m2)]
     ))
 
 
@@ -164,7 +158,6 @@
          [(let) (letS (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl))))))
                       (parse (second (s-exp->list (first (s-exp->list (second sl))))))
                       (parse (third sl)))]
-         [(class) (classS (s-exp->symbol (second sl)) (s-exp->symbol (third sl)) (s-exp->symbol (fourth sl)) (s-exp->symbol (fourth (rest sl))))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -179,36 +172,3 @@
 (interpS '(call (lambda x (seq (:= x 1) x)) 2))
 
 (interpS '(let ([x 10]) x))
-
-; Meus testes
-(interpS '(class Object a method1 method2))
-;(interpS '(class 
-
-
-
-; Test #0: Method call when instantiating Object
-(test/exn
-  (interpS
-    '(let ([obj (new Object 0)])
-       (send obj blah 42))) ; <-- Method does not exist!
-  "Class does not respond to the method blah")
-
-; Test #1: User-defiend class inheriting from Object, with methods that change
-;          the attribute of the object (shared between them).
-(test
-  (interpS
-    '(let ([Wallet
-             (class Object money
-                    (method credit amount (:= money (+ money amount)))
-                    (method debit amount (:= money (- money amount))) )])
-       (let ([wallet (new Wallet 0)])
-         (seq (send wallet credit 10)
-              (send wallet debit 3)))))
-  (numV 7))
-
-; DUVIDAS
-; Para o teste1 passar, precisamos do Objeto, metodo send e classe
-; O que é o ambiente do objeto?
-
-; TO DO
-; Remover lamC e lamS
