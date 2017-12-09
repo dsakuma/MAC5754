@@ -15,7 +15,7 @@
   [letC  (name : symbol) (arg : ExprC) (body : ExprC)]
   [classC (parent : symbol) (ins-var : symbol) (m1 : ExprC) (m2 : ExprC)]
   [methodC (name : symbol) (arg : symbol) (body : ExprC)]
-  [newC (class : symbol)]
+  [newC (class : symbol) (arg : ExprC)]
   [sendC (obj : ExprC) (method-name : symbol) (param : ExprC)]
   )
 
@@ -36,7 +36,7 @@
   [letS    (name : symbol) (arg : ExprS) (body : ExprS)]
   [classS  (parent : symbol) (ins-var : symbol) (m1 : ExprS) (m2 : ExprS)]
   [methodS (name : symbol) (arg : symbol) (body : ExprS)]
-  [newS    (class : symbol)]
+  [newS    (class : symbol) (arg : ExprS)]
   [sendS   (obj : ExprS) (method-name : symbol) (param : ExprS)]
   )
 
@@ -58,7 +58,7 @@
     [letS    (n a b)    (letC n (desugar a) (desugar b))]
     [classS  (parent ins-var m1 m2) (classC parent ins-var (desugar m1) (desugar m2))]
     [methodS (name arg body) (methodC name arg (desugar body))]
-    [newS    (class) (newC class)]
+    [newS    (class arg) (newC class (desugar arg))]
     [sendS   (obj method-name param) (sendC (desugar obj) method-name (desugar param))]
     ))
 
@@ -111,9 +111,34 @@
              (numV (* (numV-n l) (numV-n r)))]
         [else
              (error 'num* "One of the arguments is not a number")]))
-; Criat
-(define (create-object-set-ins-vars class)
-  (objectV class Object))
+
+; Create object and set instance vars in class
+(define (create-object-set-ins-vars class arg env) ; Wallet/0/env
+  
+  (if (equal? class 'Object)
+      (begin ;(display "Encontou classe Object\n")
+             (objectV class Object))
+
+      (begin ;(display "Criando objeto\n")
+             (let* [(classValue (unbox (lookup class env)))
+                    (parentClassId (classV-parent classValue))]
+                               (objectV class (create-object-set-ins-vars parentClassId 0 env))))))
+
+(define (find-method obj method-name param env)
+  (begin (display "Environment: ")
+         (display env)
+         (display "\n")
+         (display "\nObjeto: ")
+         (display obj)
+         (display "\n")
+
+     ;    (let* [(objectValue (unbox (lookup obj env)))]
+     ;      (begin
+     ;        (display "ObjectValue: ")
+     ;        (display objectValue)))
+         
+         (numV 9999)))
+  
          
 ; Interpreter
 (define (interp [a : ExprC] [env : Env]) : Value
@@ -164,9 +189,14 @@
 
     [methodC (name arg body) (methodV name arg body)]
 
-    [newC (class) (create-object-set-ins-vars class)]
+    [newC (class arg) (let* ([result (create-object-set-ins-vars class arg env)])
+                        (begin
+                          (display "Result: ")
+                          (display result)
+                           result))]
 
-    [sendC (obj method-name param)  (error 'parse "Class does not respond to the method blah")]
+    [sendC (obj method-name param) (let* ([objectValue ]
+                                          (find-method obj method-name param env)) ]
     ))
 
 
@@ -192,7 +222,7 @@
                       (parse (third sl)))]
          [(method) (methodS (s-exp->symbol (second sl)) (s-exp->symbol (third sl))  (parse (fourth sl)))]
          [(class) (classS (s-exp->symbol (second sl)) (s-exp->symbol (third sl)) (parse (fourth sl)) (parse (fourth (rest sl))))]
-         [(new) (newS (s-exp->symbol (second sl)))]
+         [(new) (newS (s-exp->symbol (second sl)) (parse (third sl)))]
          [(send) (sendS (parse (second sl)) (s-exp->symbol (third sl)) (parse (fourth sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
@@ -211,13 +241,9 @@
 
 ; My tests
 
-(interpS '(class ClassA var1 (method m1 x (+ x var1)) (method m2 x (+ x var1))))
+;(interpS '(class ClassA var1 (method m1 x (+ x var1)) (method m2 x (+ x var1))))
 
-(interpS '(let ([Wallet
-             (class Object money
-                    (method credit amount (:= money (+ money amount)))
-                    (method debit amount (:= money (- money amount))) )])
-            (+ 1 1)))
+
 
 
 ;(interpS '(new ObjectA 0)) ; It works because class object already exists in global env
@@ -228,6 +254,9 @@
     '(let ([obj (new Object 0)])
        (send obj blah 42))) ; <-- Method does not exist!
   "Class does not respond to the method blah")
+
+(define my-result (interpS '(new Object 0)))
+
 
 ; Test #1: User-defiend class inheriting from Object, with methods that change
 ;          the attribute of the object (shared between them).
