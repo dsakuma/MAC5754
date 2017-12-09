@@ -7,13 +7,14 @@
   [idC   (s : symbol)]
   [plusC (l : ExprC) (r : ExprC)]
   [multC (l : ExprC) (r : ExprC)]
-  [lamC  (arg : symbol) (body : ExprC)]
+  ;[lamC  (arg : symbol) (body : ExprC)]
   [appC  (fun : ExprC) (arg : ExprC)]
   [ifC   (c : ExprC) (y : ExprC) (n : ExprC)]
   [seqC  (e1 : ExprC) (e2 : ExprC)]
   [setC  (var : symbol) (arg : ExprC)]
   [letC  (name : symbol) (arg : ExprC) (body : ExprC)]
-  [classC (parent : symbol) (ins-var : symbol) (m1 : symbol) (m2 : symbol)]
+  [classC (parent : symbol) (ins-var : symbol) (m1 : ExprC) (m2 : ExprC)]
+  [methodC (name : symbol) (arg : symbol) (body : ExprC)]
   )
 
 
@@ -21,7 +22,7 @@
 (define-type ExprS
   [numS    (n : number)]
   [idS     (s : symbol)]
-  [lamS    (arg : symbol) (body : ExprS)]
+  ;[lamS    (arg : symbol) (body : ExprS)]
   [appS    (fun : ExprS) (arg : ExprS)]
   [plusS   (l : ExprS) (r : ExprS)]
   [bminusS (l : ExprS) (r : ExprS)]
@@ -32,6 +33,7 @@
   [setS    (var : symbol) (arg : ExprS)]
   [letS    (name : symbol) (arg : ExprS) (body : ExprS)]
   [classS  (parent : symbol) (ins-var : symbol) (m1 : ExprS) (m2 : ExprS)]
+  [methodS (name : symbol) (arg : symbol) (body : ExprS)]
   )
 
 
@@ -40,7 +42,7 @@
   (type-case ExprS as
     [numS    (n)        (numC n)]
     [idS     (s)        (idC s)]
-    [lamS    (a b)      (lamC a (desugar b))]
+    ;[lamS    (a b)      (lamC a (desugar b))]
     [appS    (fun arg)  (appC (desugar fun) (desugar arg))]
     [plusS   (l r)      (plusC (desugar l) (desugar r))]
     [multS   (l r)      (multC (desugar l) (desugar r))]
@@ -50,15 +52,16 @@
     [seqS    (e1 e2)    (seqC (desugar e1) (desugar e2))]
     [setS    (var expr) (setC  var (desugar expr))]
     [letS    (n a b)    (letC n (desugar a) (desugar b))]
-    [classS  (parent ins-var m1 m2) (classC parent ins-var m1 m2)]
+    [classS  (parent ins-var m1 m2) (classC parent ins-var (desugar m1) (desugar m2))]
+    [methodS (name arg body) (methodC name arg (desugar body))]
     ))
 
 
 ; We need a new value for the box
 (define-type Value
   [numV  (n : number)]
-  [methodV (arg : symbol) (body : ExprC) (env : Env)]
-  [classV (parent : symbol) (ins-var : symbol) (m1 : symbol) (m2 : symbol)]
+  [methodV (name : symbol) (arg : symbol) (body : ExprC)]
+  [classV (parent : symbol) (ins-var : symbol) (m1 : Value) (m2 : Value)]
   )
 
 
@@ -107,16 +110,18 @@
     [idC (n) (unbox (lookup n env))]
 
     ; Lambdas evaluate to closures, which save the environment
-    [lamC (a b) (methodV a b env)]
+    ;[lamC (a b) (methodV a b env)]
 
     ; Application of function
-    [appC (f a)
-          (let ([f-value (interp f env)])
-            (interp (methodV-body f-value)
-                    (extend-env
-                        (bind (methodV-arg f-value) (box (interp a env)))
-                        (methodV-env f-value)
-                    )))]
+    [appC (f a) (numV 99999)]
+              
+;    [appC (f a)
+;          (let ([f-value (interp f env)])
+;            (interp (methodV-body f-value)
+;                    (extend-env
+;                        (bind (methodV-arg f-value) (box (interp a env)))
+;                        (methodV-env f-value)
+;                    )))]
 
     ; Sum two numbers using auxiliary function
     [plusC (l r) (num+ (interp l env) (interp r env))]
@@ -140,7 +145,9 @@
                  [new-env (extend-env new-bind env)])
             (interp body new-env))]
 
-    [classC (parent ins-var m1 m2) (classV parent ins-var m1 m2)]
+    [classC (parent ins-var m1 m2) (classV parent ins-var (interp m1 env) (interp m2 env))]
+
+    [methodC (name arg body) (methodV name arg body)]
     ))
 
 
@@ -156,7 +163,7 @@
          [(*) (multS (parse (second sl)) (parse (third sl)))]
          [(-) (bminusS (parse (second sl)) (parse (third sl)))]
          [(~) (uminusS (parse (second sl)))]
-         [(lambda) (lamS (s-exp->symbol (second sl)) (parse (third sl)))] ; definição
+         ;[(lambda) (lamS (s-exp->symbol (second sl)) (parse (third sl)))] ; definição
          [(call) (appS (parse (second sl)) (parse (third sl)))]
          [(if) (ifS (parse (second sl)) (parse (third sl)) (parse (fourth sl)))]
          [(seq) (seqS (parse (second sl)) (parse (third sl)))]
@@ -164,7 +171,8 @@
          [(let) (letS (s-exp->symbol (first (s-exp->list (first (s-exp->list (second sl))))))
                       (parse (second (s-exp->list (first (s-exp->list (second sl))))))
                       (parse (third sl)))]
-         [(class) (classS (s-exp->symbol (second sl)) (s-exp->symbol (third sl)) (s-exp->symbol (fourth sl)) (s-exp->symbol (fourth (rest sl))))]
+         [(method) (methodS (s-exp->symbol (second sl)) (s-exp->symbol (third sl))  (parse (fourth sl)))]
+         [(class) (classS (s-exp->symbol (second sl)) (s-exp->symbol (third sl)) (parse (fourth sl)) (parse (fourth (rest sl))))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -174,16 +182,21 @@
 
 
 ; Examples
-(interpS '(+ 10 (call (lambda x (+ (:= x (* x 2)) x)) 8)))
+;(interpS '(+ 10 (call (lambda x (+ (:= x (* x 2)) x)) 8)))
 
-(interpS '(call (lambda x (seq (:= x 1) x)) 2))
+;(interpS '(call (lambda x (seq (:= x 1) x)) 2))
 
-(interpS '(let ([x 10]) x))
+;(interpS '(let ([x 10]) x))
+
+(interpS '(class ClassA var1 (method m1 x (+ x var1)) (method m2 x (+ x var1))))
+
+
 
 ; Meus testes
-(interpS '(class Object a method1 method2))
+;(interpS '(class Object a method1 method2))
 ;(interpS '(class 
 
+;(interpS '(class Automovel rodas (method aument count (+ rodas)) (method diminui count (- rodas))))
 
 
 ; Test #0: Method call when instantiating Object
@@ -195,16 +208,16 @@
 
 ; Test #1: User-defiend class inheriting from Object, with methods that change
 ;          the attribute of the object (shared between them).
-(test
-  (interpS
-    '(let ([Wallet
-             (class Object money
-                    (method credit amount (:= money (+ money amount)))
-                    (method debit amount (:= money (- money amount))) )])
-       (let ([wallet (new Wallet 0)])
-         (seq (send wallet credit 10)
-              (send wallet debit 3)))))
-  (numV 7))
+;(test
+;  (interpS
+;    '(let ([Wallet
+;             (class Object money
+;                    (method credit amount (:= money (+ money amount)))
+;                    (method debit amount (:= money (- money amount))) )])
+;       (let ([wallet (new Wallet 0)])
+;         (seq (send wallet credit 10)
+;              (send wallet debit 3)))))
+;  (numV 7))
 
 ; DUVIDAS
 ; Para o teste1 passar, precisamos do Objeto, metodo send e classe
