@@ -16,6 +16,7 @@
   [classC (parent : symbol) (ins-var : symbol) (m1 : ExprC) (m2 : ExprC)]
   [methodC (name : symbol) (arg : symbol) (body : ExprC)]
   [newC (class : symbol)]
+  [sendC (obj : ExprC) (method-name : symbol) (param : ExprC)]
   )
 
 
@@ -58,7 +59,7 @@
     [classS  (parent ins-var m1 m2) (classC parent ins-var (desugar m1) (desugar m2))]
     [methodS (name arg body) (methodC name arg (desugar body))]
     [newS    (class) (newC class)]
-    [sendS   (obj method-name param) ()]
+    [sendS   (obj method-name param) (sendC (desugar obj) method-name (desugar param))]
     ))
 
 
@@ -110,7 +111,10 @@
              (numV (* (numV-n l) (numV-n r)))]
         [else
              (error 'num* "One of the arguments is not a number")]))
-
+; Criat
+(define (create-object-set-ins-vars class)
+  (objectV class Object))
+         
 ; Interpreter
 (define (interp [a : ExprC] [env : Env]) : Value
   (type-case ExprC a
@@ -160,7 +164,9 @@
 
     [methodC (name arg body) (methodV name arg body)]
 
-    [newC (class) (objectV class Object)]
+    [newC (class) (create-object-set-ins-vars class)]
+
+    [sendC (obj method-name param)  (error 'parse "Class does not respond to the method blah")]
     ))
 
 
@@ -205,9 +211,16 @@
 
 ; My tests
 
-(interpS '(class ClassA var1 (method m1 x (+ x var1)) (method m2 x (+ x var1)))) 
+(interpS '(class ClassA var1 (method m1 x (+ x var1)) (method m2 x (+ x var1))))
 
-(interpS '(new Object 0)) ; It works because class object already exists in global env
+(interpS '(let ([Wallet
+             (class Object money
+                    (method credit amount (:= money (+ money amount)))
+                    (method debit amount (:= money (- money amount))) )])
+            (+ 1 1)))
+
+
+;(interpS '(new ObjectA 0)) ; It works because class object already exists in global env
 
 ; Test #0: Method call when instantiating Object
 (test/exn
