@@ -36,6 +36,7 @@
   [classS  (parent : symbol) (ins-var : symbol) (m1 : ExprS) (m2 : ExprS)]
   [methodS (name : symbol) (arg : symbol) (body : ExprS)]
   [newS    (class : symbol)]
+  [sendS   (obj : ExprS) (method-name : symbol) (param : ExprS)]
   )
 
 
@@ -57,6 +58,7 @@
     [classS  (parent ins-var m1 m2) (classC parent ins-var (desugar m1) (desugar m2))]
     [methodS (name arg body) (methodC name arg (desugar body))]
     [newS    (class) (newC class)]
+    [sendS   (obj method-name param) ()]
     ))
 
 
@@ -78,7 +80,7 @@
 (define mt-env empty)
 (define extend-env cons)
 
-; Adicionando Object no ambiente global
+; Add Object in global environment
 (define Object (classV 'Object 'dummy_arg (methodV 'dummy_method1 'dummy_arg_1 (numC 0)) (methodV 'dummy_method2 'dummy_arg_2 (numC 0))))
 (define env (extend-env
                (bind 'Object (box Object))
@@ -158,7 +160,7 @@
 
     [methodC (name arg body) (methodV name arg body)]
 
-    [newC (class) (numV 99999)]
+    [newC (class) (objectV class Object)]
     ))
 
 
@@ -175,7 +177,7 @@
          [(-) (bminusS (parse (second sl)) (parse (third sl)))]
          [(~) (uminusS (parse (second sl)))]
          ;[(lambda) (lamS (s-exp->symbol (second sl)) (parse (third sl)))] ; definição
-         [(call) (appS (parse (second sl)) (parse (third sl)))]
+         ;[(call) (appS (parse (second sl)) (parse (third sl)))]
          [(if) (ifS (parse (second sl)) (parse (third sl)) (parse (fourth sl)))]
          [(seq) (seqS (parse (second sl)) (parse (third sl)))]
          [(:=) (setS (s-exp->symbol (second sl)) (parse (third sl)))]
@@ -185,6 +187,7 @@
          [(method) (methodS (s-exp->symbol (second sl)) (s-exp->symbol (third sl))  (parse (fourth sl)))]
          [(class) (classS (s-exp->symbol (second sl)) (s-exp->symbol (third sl)) (parse (fourth sl)) (parse (fourth (rest sl))))]
          [(new) (newS (s-exp->symbol (second sl)))]
+         [(send) (sendS (parse (second sl)) (s-exp->symbol (third sl)) (parse (fourth sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
 
@@ -200,24 +203,18 @@
 
 ;(interpS '(let ([x 10]) x))
 
-(interpS '(class ClassA var1 (method m1 x (+ x var1)) (method m2 x (+ x var1))))
+; My tests
 
-(interpS '(new Object))
+(interpS '(class ClassA var1 (method m1 x (+ x var1)) (method m2 x (+ x var1)))) 
 
-
-; Meus testes
-;(interpS '(class Object a method1 method2))
-;(interpS '(class 
-
-;(interpS '(class Automovel rodas (method aument count (+ rodas)) (method diminui count (- rodas))))
-
+(interpS '(new Object 0)) ; It works because class object already exists in global env
 
 ; Test #0: Method call when instantiating Object
-;(test/exn
-;  (interpS
-;    '(let ([obj (new Object 0)])
-;       (send obj blah 42))) ; <-- Method does not exist!
-;  "Class does not respond to the method blah")
+(test/exn
+  (interpS
+    '(let ([obj (new Object 0)])
+       (send obj blah 42))) ; <-- Method does not exist!
+  "Class does not respond to the method blah")
 
 ; Test #1: User-defiend class inheriting from Object, with methods that change
 ;          the attribute of the object (shared between them).
@@ -232,9 +229,3 @@
 ;              (send wallet debit 3)))))
 ;  (numV 7))
 
-; DUVIDAS
-; Para o teste1 passar, precisamos do Objeto, metodo send e classe
-; O que é o ambiente do objeto?
-
-; TO DO
-; Remover lamC e lamS
