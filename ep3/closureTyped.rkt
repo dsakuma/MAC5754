@@ -117,40 +117,52 @@
   
   (if (equal? class 'Object)
       (begin ;(display "Encontou classe Object\n")
-             (objectV class Object))
+             (objectV class (objectV 'DummyClass (numV 1) )))
 
       (begin ;(display "Criando objeto\n")
              (let* [(classValue (unbox (lookup class env)))
                     (parentClassId (classV-parent classValue))]
                                (objectV class (create-object-set-ins-vars parentClassId 0 env))))))
 
-(define (find-method obj method-name param env)
+(define (find-method obj method-name env)
   (begin (display "Environment: ")
          (display env)
-         (display "\n")
-         (display "Objeto: ")
+         (display "\n\n")
+
+         (display "Object ")
          (display obj)
-         (display "\n")
+         (display "\n\n")
 
          (display "Parent: ")
          (display (objectV-parent obj))
-         (display "\n")
+         (display "\n\n")
 
-         (display "class Parent ")
-         (display (classV-parent (objectV-parent obj)))
-         (display "\n")
-
-         (if (equal? (classV-parent (objectV-parent obj)) 'DummyClass)
-             (error 'find-method (string-append "Class does not respond to the method " (symbol->string method-name)))
-             (numV 9999))))
          
-     ;    (let* [(objectValue (unbox (lookup obj env)))]
-     ;      (begin
-     ;        (display "ObjectValue: ")
-     ;        (display objectValue)))
-         
+         (let* ([class (objectV-class obj)]
+                [parentClass (objectV-class (objectV-parent obj))])
+           (begin
+             
+             (display "AAAAAAAAAAAA")
+             
+             (if (equal? parentClass 'DummyClass)
+                 (error 'find-method (string-append "Class does not respond to the method " (symbol->string method-name)))
+                 (error 'find-method (string-append "Class does not respond to the method " (symbol->string method-name))))))))
 
-  
+
+;         (let* ([class (objectV-class obj)]
+;                [parentClass (objectV-class (objectV-parent obj))])
+;           
+;           (if (equal? parentClass 'DummyClass)
+;               (error 'find-method (string-append "Class does not respond to the method " (symbol->string method-name)))
+;
+;               (if (equal? (methodV-name (classV-m1 class)) method-name)
+;                   (classV-m1 class)
+;                   (if (equal? (methodV-name (classV-m2 class)) method-name)
+;                       (classV-m2 class)
+;                       (find-method (objectV-parent obj) method-name env)))))))
+                        
+           
+           
          
 ; Interpreter
 (define (interp [a : ExprC] [env : Env]) : Value
@@ -208,7 +220,7 @@
                            result))]
 
     [sendC (obj method-name param) (let* ([objectValue (interp obj env)])
-                                          (find-method objectValue method-name param env))]
+                                          (find-method objectValue method-name env))]
     ))
 
 
@@ -271,14 +283,14 @@
 
 ; Test #1: User-defiend class inheriting from Object, with methods that change
 ;          the attribute of the object (shared between them).
-;(test
-;  (interpS
-;    '(let ([Wallet
-;             (class Object money
-;                    (method credit amount (:= money (+ money amount)))
-;                    (method debit amount (:= money (- money amount))) )])
-;       (let ([wallet (new Wallet 0)])
-;         (seq (send wallet credit 10)
-;              (send wallet debit 3)))))
-;  (numV 7))
+(test
+  (interpS
+    '(let ([Wallet
+             (class Object money
+                    (method credit amount (:= money (+ money amount)))
+                    (method debit amount (:= money (- money amount))) )])
+       (let ([wallet (new Wallet 0)])
+         (seq (send wallet credit 10)
+              (send wallet debit 3)))))
+  (numV 7))
 
