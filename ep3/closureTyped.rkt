@@ -82,7 +82,7 @@
 (define extend-env cons)
 
 ; Add Object in global environment
-(define Object (classV 'Object 'dummy_arg (methodV 'dummy_method1 'dummy_arg_1 (numC 0)) (methodV 'dummy_method2 'dummy_arg_2 (numC 0))))
+(define Object (classV 'DummyClass 'dummy_arg (methodV 'dummy_method1 'dummy_arg_1 (numC 0)) (methodV 'dummy_method2 'dummy_arg_2 (numC 0))))
 (define env (extend-env
                (bind 'Object (box Object))
                mt-env))
@@ -128,16 +128,28 @@
   (begin (display "Environment: ")
          (display env)
          (display "\n")
-         (display "\nObjeto: ")
+         (display "Objeto: ")
          (display obj)
          (display "\n")
 
+         (display "Parent: ")
+         (display (objectV-parent obj))
+         (display "\n")
+
+         (display "class Parent ")
+         (display (classV-parent (objectV-parent obj)))
+         (display "\n")
+
+         (if (equal? (classV-parent (objectV-parent obj)) 'DummyClass)
+             (error 'find-method (string-append "Class does not respond to the method " (symbol->string method-name)))
+             (numV 9999))))
+         
      ;    (let* [(objectValue (unbox (lookup obj env)))]
      ;      (begin
      ;        (display "ObjectValue: ")
      ;        (display objectValue)))
          
-         (numV 9999)))
+
   
          
 ; Interpreter
@@ -191,12 +203,12 @@
 
     [newC (class arg) (let* ([result (create-object-set-ins-vars class arg env)])
                         (begin
-                          (display "Result: ")
-                          (display result)
+                          ;(display "Result: ")
+                          ;(display result)
                            result))]
 
-    [sendC (obj method-name param) (let* ([objectValue ]
-                                          (find-method obj method-name param env)) ]
+    [sendC (obj method-name param) (let* ([objectValue (interp obj env)])
+                                          (find-method objectValue method-name param env))]
     ))
 
 
@@ -255,7 +267,6 @@
        (send obj blah 42))) ; <-- Method does not exist!
   "Class does not respond to the method blah")
 
-(define my-result (interpS '(new Object 0)))
 
 
 ; Test #1: User-defiend class inheriting from Object, with methods that change
