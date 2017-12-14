@@ -123,7 +123,7 @@
   (let* ([class-value (unbox (lookup class-name env))]
          [inherited-env (create-inherited-env class-value env)]
          [class-ins-var-name (classV-ins-var-name class-value)]
-         [bind-ins-var (bind class-ins-var-name (box (interp param env)))]
+         [bind-ins-var (bind class-ins-var-name (box param))]
          [extended-env (append (extend-env bind-ins-var inherited-env) env)])
          (begin
            ;(display "Inherited env ")(display inherited-env) (display "\n")
@@ -178,7 +178,7 @@
 
     [methodC (name arg body) (methodV name arg body)]
 
-    [newC (class-name param) (let* ([result (create-object-set-ins-vars class-name param env)])
+    [newC (class-name param) (let* ([result (create-object-set-ins-vars class-name (interp param env) env)])
                                    (begin
                                       ;(display "Result: ")(display result)(display "\n\n")
                                       result))]
