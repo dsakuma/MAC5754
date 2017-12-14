@@ -13,7 +13,7 @@
   [letC  (name : symbol) (arg : ExprC) (body : ExprC)]
   [classC (parent-name : symbol) (ins-var-name : symbol) (m1 : ExprC) (m2 : ExprC)]
   [methodC (name : symbol) (arg : symbol) (body : ExprC)]
-  [newC (class-name : symbol) (param : number)]
+  [newC (class-name : symbol) (param : ExprC)]
   [sendC (obj : ExprC) (method-name : symbol) (arg : ExprC)]
   )
 
@@ -32,7 +32,7 @@
   [letS    (name : symbol) (arg : ExprS) (body : ExprS)]
   [classS  (parent-name : symbol) (ins-var-name : symbol) (m1 : ExprS) (m2 : ExprS)]
   [methodS (name : symbol) (arg : symbol) (body : ExprS)]
-  [newS    (class-name : symbol) (param : number)]
+  [newS    (class-name : symbol) (param : ExprS)]
   [sendS   (obj : ExprS) (method-name : symbol) (arg : ExprS)]
   )
 
@@ -52,7 +52,7 @@
     [letS    (n a b)    (letC n (desugar a) (desugar b))]
     [classS  (parent-name ins-var-name m1 m2) (classC parent-name ins-var-name (desugar m1) (desugar m2))]
     [methodS (name arg body) (methodC name arg (desugar body))]
-    [newS    (class-name param) (newC class-name param)]
+    [newS    (class-name param) (newC class-name (desugar param))]
     [sendS   (obj method-name arg) (sendC (desugar obj) method-name (desugar arg))]
     ))
 
@@ -123,7 +123,7 @@
   (let* ([class-value (unbox (lookup class-name env))]
          [inherited-env (create-inherited-env class-value env)]
          [class-ins-var-name (classV-ins-var-name class-value)]
-         [bind-ins-var (bind class-ins-var-name (box (numV param)))]
+         [bind-ins-var (bind class-ins-var-name (box (interp param env)))]
          [extended-env (append (extend-env bind-ins-var inherited-env) env)])
          (begin
            ;(display "Inherited env ")(display inherited-env) (display "\n")
@@ -215,7 +215,7 @@
                       (parse (third sl)))]
          [(method) (methodS (s-exp->symbol (second sl)) (s-exp->symbol (third sl))  (parse (fourth sl)))]
          [(class) (classS (s-exp->symbol (second sl)) (s-exp->symbol (third sl)) (parse (fourth sl)) (parse (fourth (rest sl))))]
-         [(new) (newS (s-exp->symbol (second sl)) (s-exp->number (third sl)))]
+         [(new) (newS (s-exp->symbol (second sl)) (parse (third sl)))]
          [(send) (sendS (parse (second sl)) (s-exp->symbol (third sl)) (parse (fourth sl)))]
          [else (error 'parse "invalid list input")]))]
     [else (error 'parse "invalid input")]))
